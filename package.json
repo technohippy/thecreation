@@ -1,0 +1,17 @@
+{
+  "name": "thecreation",
+  "version": "0.1.0",
+  "description": "",
+  "scripts": {
+    "start": "browser-sync start --server --port=9090 --ui-port=9091 --files='./*.html, ./**/*.js'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.126.0"
+  },
+  "devDependencies": {
+    "browser-sync": "^2.26.14"
+  }
+}

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			* {
+				padding:0;
+				margin:0;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="gl"></canvas>
+		<script type="module">
+			import * as THREE from "./node_modules/three/build/three.module.js"
+			import { VRButton } from './node_modules/three/examples/jsm/webxr/VRButton.js';
+			import { XRControllerModelFactory } from './node_modules/three/examples/jsm/webxr/XRControllerModelFactory.js';
+			import { XRHandModelFactory } from './node_modules/three/examples/jsm/webxr/XRHandModelFactory.js';
+
+			const scene = new THREE.Scene();
+			const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+			const renderer = new THREE.WebGLRenderer({canvas:document.getElementById("gl")});
+			renderer.setSize( window.innerWidth, window.innerHeight );
+
+			const light = new THREE.DirectionalLight(0xffffff, 2)
+			light.position.set(1, 0.5, -0.8)
+			scene.add(light)
+
+			const light2 = new THREE.DirectionalLight(0xffffff, 0.3)
+			light2.position.set(-1, -1, -0.8)
+			scene.add(light2)
+
+			const baseHeight = 10
+
+			const floorGeometry = new THREE.PlaneGeometry( 50, 50, 100, 100 );
+			const floorMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff } );
+			floorMaterial.flatShading = true
+			const floor = new THREE.Mesh( floorGeometry, floorMaterial );
+			floor.rotation.x = - Math.PI / 2;
+			floor.position.y = -baseHeight
+			floor.receiveShadow = true;
+			scene.add( floor );
+
+			const waters = []
+			for (let i = 1; i < 8; i++) {
+				const waterGeometry = new THREE.PlaneGeometry( 50, 50 );
+				const waterMaterial = new THREE.MeshStandardMaterial( { color: 0xccccff, opacity: 0.5 + 0.05 * i } );
+				waterMaterial.flatShading = true
+				waterMaterial.transparent = true
+				const water = new THREE.Mesh( waterGeometry, waterMaterial );
+				water.rotation.x = - Math.PI / 2;
+				water.position.y = -baseHeight -0.05 * i * i
+				water.receiveShadow = true;
+				scene.add( water );
+				waters.push(water)
+			}
+
+			const ballGeometry1 = new THREE.SphereGeometry(0.1)
+			const ballMaterial1 = new THREE.MeshBasicMaterial({color:0xff0000})
+			const ball1 = new THREE.Mesh(ballGeometry1, ballMaterial1)
+			scene.add(ball1)
+
+			const ballGeometry2 = new THREE.SphereGeometry(0.1)
+			const ballMaterial2 = new THREE.MeshBasicMaterial({color:0x0000ff})
+			const ball2 = new THREE.Mesh(ballGeometry2, ballMaterial2)
+			scene.add(ball2)
+
+
+				// controllers
+
+				const controller1 = renderer.xr.getController( 0 );
+				controller1.addEventListener( 'selectstart', () => { controller1.userData.selected = true } );
+				controller1.addEventListener( 'selectend', () => { controller1.userData.selected = false } );
+				controller1.addEventListener( 'squeezestart', () => { controller1.userData.squeezed = true } );
+				controller1.addEventListener( 'squeezeend', () => { controller1.userData.squeezed = false } );
+				scene.add( controller1 );
+
+				const controller2 = renderer.xr.getController( 1 );
+				controller2.addEventListener( 'selectstart', () => { controller2.userData.selected = true } );
+				controller2.addEventListener( 'selectend', () => { controller2.userData.selected = false } );
+				controller2.addEventListener( 'squeezestart', () => { controller2.userData.squeezed = true } );
+				controller2.addEventListener( 'squeezeend', () => { controller2.userData.squeezed = false } );
+				scene.add( controller2 );
+
+				const controllerModelFactory = new XRControllerModelFactory();
+				const handModelFactory = new XRHandModelFactory().setPath( "./models/fbx/" );
+
+				// Hand 1: right
+				const controllerGrip1 = renderer.xr.getControllerGrip( 0 );
+				controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
+				scene.add( controllerGrip1 );
+
+				const hand1 = renderer.xr.getHand( 0 );
+				hand1.add( handModelFactory.createHandModel( hand1 ) );
+
+				scene.add( hand1 );
+
+				// Hand 2: left
+				const controllerGrip2 = renderer.xr.getControllerGrip( 1 );
+				controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
+				scene.add( controllerGrip2 );
+
+				const hand2 = renderer.xr.getHand( 1 );
+				hand2.add( handModelFactory.createHandModel( hand2 ) );
+				scene.add( hand2 );
+
+				//
+
+				const geometry = new THREE.BufferGeometry().setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 1 ) ] );
+
+				const line = new THREE.Line( geometry );
+				line.name = 'line';
+				line.scale.z = 10;
+
+				controller1.add( line.clone() );
+				controller2.add( line.clone() );
+
+				//
+
+			const raycaster = new THREE.Raycaster()
+
+			// XR
+			document.body.appendChild( VRButton.createButton( renderer ) );
+			renderer.xr.enabled = true;
+			renderer.setAnimationLoop( function () {
+
+				const direction1 = new THREE.Vector3(0, 0, -1)
+				direction1.applyEuler(controller1.rotation)
+				raycaster.set(controller1.position, direction1)
+				let intersects = raycaster.intersectObject(floor)
+				if (0 < intersects.length) {
+					const intersect = intersects[0]
+					ball1.position.copy(intersect.point)
+
+					if (controller1.userData.selected) {
+						const objPosition = intersect.object.geometry.getAttribute("position")
+						const z1 = objPosition.getZ(intersect.face.a)
+						const z2 = objPosition.getZ(intersect.face.b)
+						const z3 = objPosition.getZ(intersect.face.c)
+						objPosition.setZ(intersect.face.a, Math.min(z1 + 0.01, 1))
+						objPosition.setZ(intersect.face.b, Math.min(z2 + 0.01, 1))
+						objPosition.setZ(intersect.face.c, Math.min(z3 + 0.01, 1))
+						objPosition.needsUpdate = true
+					} else if (controller1.userData.squeezed) {
+						const objPosition = intersect.object.geometry.getAttribute("position")
+						const z1 = objPosition.getZ(intersect.face.a)
+						const z2 = objPosition.getZ(intersect.face.b)
+						const z3 = objPosition.getZ(intersect.face.c)
+						objPosition.setZ(intersect.face.a, Math.max(z1 - 0.01, -1))
+						objPosition.setZ(intersect.face.b, Math.max(z2 - 0.01, -1))
+						objPosition.setZ(intersect.face.c, Math.max(z3 - 0.01, -1))
+						objPosition.needsUpdate = true
+					} 
+				}
+
+				const direction2 = new THREE.Vector3(0, 0, -1)
+				direction2.applyEuler(controller2.rotation)
+				raycaster.set(controller2.position, direction2)
+				intersects = raycaster.intersectObject(floor)
+				if (0 < intersects.length) {
+					const intersect = intersects[0]
+					ball2.position.copy(intersect.point)
+
+					const direction = new THREE.Vector2(intersect.point.x, intersect.point.z)
+					direction.normalize()
+					direction.multiplyScalar(0.05)
+					if (controller2.userData.selected) {
+						floor.position.x -= direction.x
+						floor.position.z -= direction.y
+						for (const water of waters) {
+							water.position.x -= direction.x
+							water.position.z -= direction.y
+						}
+					} else if (controller2.userData.squeezed) {
+						floor.position.x += direction.x
+						floor.position.z += direction.y
+						for (const water of waters) {
+							water.position.x += direction.x
+							water.position.z += direction.y
+						}
+					} 
+
+					if (controller2.userData.selected || controller2.userData.squeezed) {
+						const cameraDirection3 = camera.getWorldDirection(new THREE.Vector3())
+						const cameraDirection2 = new THREE.Vector2(cameraDirection3.x, cameraDirection3.z)
+						let angle = Math.acos(direction.dot(cameraDirection2)/direction.length()/cameraDirection2.length())
+						if (0 < direction.cross(cameraDirection2)) {
+							floor.rotation.z -= 0.005 * angle
+							for (const water of waters) {
+								water.rotation.z -= 0.005 * angle
+							}
+						} else {
+							floor.rotation.z += 0.005 * angle
+							for (const water of waters) {
+								water.rotation.z += 0.005 * angle
+							}
+						}
+					}
+				} 
+
+				renderer.render( scene, camera );
+			} );
+		</script>
+	</body>
+</html>
