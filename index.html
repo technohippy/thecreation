@@ -33,6 +33,14 @@
 			const baseHeight = 10
 
 			const floorGeometry = new THREE.PlaneGeometry( 50, 50, 100, 100 );
+			/*
+			const floorGeometry = new THREE.PlaneGeometry( 50, 50, 10, 10 );
+			const pattr = floorGeometry.getAttribute("position").array
+			console.log(pattr)
+			for (let i = 0; i < pattr.length; i += 3) {
+				console.log(`${pattr[i]}, ${pattr[i+1]}, ${pattr[i+2]}`)
+			}
+			*/
 			const floorMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff } );
 			floorMaterial.flatShading = true
 			const floor = new THREE.Mesh( floorGeometry, floorMaterial );
@@ -40,6 +48,15 @@
 			floor.position.y = -baseHeight
 			floor.receiveShadow = true;
 			scene.add( floor );
+
+			const anchorFloorGeometry = new THREE.PlaneGeometry( 500, 500, 1, 1 );
+			const anchorFloorMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, wireframe:true } );
+			anchorFloorMaterial.flatShading = true
+			const anchorFloor = new THREE.Mesh( anchorFloorGeometry, anchorFloorMaterial );
+			anchorFloor.rotation.x = - Math.PI / 2;
+			anchorFloor.position.y = -baseHeight + 1
+			anchorFloor.receiveShadow = true;
+			//scene.add( anchorFloor );
 
 			const waters = []
 			for (let i = 1; i < 8; i++) {
@@ -132,23 +149,39 @@
 					const intersect = intersects[0]
 					ball1.position.copy(intersect.point)
 
+					const maxHeight = 3
 					if (controller1.userData.selected) {
 						const objPosition = intersect.object.geometry.getAttribute("position")
+						const base = intersect.face.a
+						const d = 6 
+						for (let dy = -d; dy <= d; dy++) {
+							for (let dx = -d; dx <= d; dx++) {
+								const len = Math.sqrt(dx * dx + dy * dy)
+								if (len < d) {
+									const coeff = (Math.cos(len / d * Math.PI) + 1) / 2
+									const pid = base + dx * 101 + dy
+									const z = objPosition.getZ(pid)
+									objPosition.setZ(pid, Math.min(z + 0.01 * coeff, maxHeight))
+								}
+							}
+						}
+						/*
 						const z1 = objPosition.getZ(intersect.face.a)
 						const z2 = objPosition.getZ(intersect.face.b)
 						const z3 = objPosition.getZ(intersect.face.c)
-						objPosition.setZ(intersect.face.a, Math.min(z1 + 0.01, 1))
-						objPosition.setZ(intersect.face.b, Math.min(z2 + 0.01, 1))
-						objPosition.setZ(intersect.face.c, Math.min(z3 + 0.01, 1))
+						objPosition.setZ(intersect.face.a, Math.min(z1 + 0.01, maxHeight))
+						objPosition.setZ(intersect.face.b, Math.min(z2 + 0.01, maxHeight))
+						objPosition.setZ(intersect.face.c, Math.min(z3 + 0.01, maxHeight))
+						*/
 						objPosition.needsUpdate = true
 					} else if (controller1.userData.squeezed) {
 						const objPosition = intersect.object.geometry.getAttribute("position")
 						const z1 = objPosition.getZ(intersect.face.a)
 						const z2 = objPosition.getZ(intersect.face.b)
 						const z3 = objPosition.getZ(intersect.face.c)
-						objPosition.setZ(intersect.face.a, Math.max(z1 - 0.01, -1))
-						objPosition.setZ(intersect.face.b, Math.max(z2 - 0.01, -1))
-						objPosition.setZ(intersect.face.c, Math.max(z3 - 0.01, -1))
+						objPosition.setZ(intersect.face.a, Math.max(z1 - 0.01, -maxHeight))
+						objPosition.setZ(intersect.face.b, Math.max(z2 - 0.01, -maxHeight))
+						objPosition.setZ(intersect.face.c, Math.max(z3 - 0.01, -maxHeight))
 						objPosition.needsUpdate = true
 					} 
 				}
@@ -196,7 +229,21 @@
 							}
 						}
 					}
-				} 
+				} else {
+					const speed = 0.05
+					if (controller2.userData.selected) {
+						floor.position.y -= speed
+						for (const water of waters) {
+							water.position.y -= speed
+						}
+					} else if (controller2.userData.squeezed) {
+						floor.position.y += speed
+						for (const water of waters) {
+							water.position.y += speed
+						}
+					} 
+
+				}
 
 				renderer.render( scene, camera );
 			} );
