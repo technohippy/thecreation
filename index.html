@@ -33,14 +33,6 @@
 			const baseHeight = 10
 
 			const floorGeometry = new THREE.PlaneGeometry( 50, 50, 100, 100 );
-			/*
-			const floorGeometry = new THREE.PlaneGeometry( 50, 50, 10, 10 );
-			const pattr = floorGeometry.getAttribute("position").array
-			console.log(pattr)
-			for (let i = 0; i < pattr.length; i += 3) {
-				console.log(`${pattr[i]}, ${pattr[i+1]}, ${pattr[i+2]}`)
-			}
-			*/
 			const floorMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff } );
 			floorMaterial.flatShading = true
 			const floor = new THREE.Mesh( floorGeometry, floorMaterial );
@@ -72,9 +64,14 @@
 				waters.push(water)
 			}
 
-			const ballGeometry1 = new THREE.SphereGeometry(0.1)
-			const ballMaterial1 = new THREE.MeshBasicMaterial({color:0xff0000})
+			let ball1Radius = 1
+			const ballGeometry1 = new THREE.SphereGeometry(1)
+			const ballMaterial1 = new THREE.MeshBasicMaterial({color:0xff0000, opacity: 0.5})
+			ballMaterial1.transparent =  true
 			const ball1 = new THREE.Mesh(ballGeometry1, ballMaterial1)
+			ball1.scale.x = ball1Radius / 2
+			ball1.scale.y = ball1Radius / 2
+			ball1.scale.z = ball1Radius / 2
 			scene.add(ball1)
 
 			const ballGeometry2 = new THREE.SphereGeometry(0.1)
@@ -151,38 +148,21 @@
 
 					const maxHeight = 3
 					if (controller1.userData.selected) {
-						const objPosition = intersect.object.geometry.getAttribute("position")
-						const base = intersect.face.a
-						const d = 6 
-						for (let dy = -d; dy <= d; dy++) {
-							for (let dx = -d; dx <= d; dx++) {
-								const len = Math.sqrt(dx * dx + dy * dy)
-								if (len < d) {
-									const coeff = (Math.cos(len / d * Math.PI) + 1) / 2
-									const pid = base + dx * 101 + dy
-									const z = objPosition.getZ(pid)
-									objPosition.setZ(pid, Math.min(z + 0.01 * coeff, maxHeight))
-								}
-							}
-						}
-						/*
-						const z1 = objPosition.getZ(intersect.face.a)
-						const z2 = objPosition.getZ(intersect.face.b)
-						const z3 = objPosition.getZ(intersect.face.c)
-						objPosition.setZ(intersect.face.a, Math.min(z1 + 0.01, maxHeight))
-						objPosition.setZ(intersect.face.b, Math.min(z2 + 0.01, maxHeight))
-						objPosition.setZ(intersect.face.c, Math.min(z3 + 0.01, maxHeight))
-						*/
-						objPosition.needsUpdate = true
+						transformPlane(intersect, ball1Radius, maxHeight, 1)
 					} else if (controller1.userData.squeezed) {
-						const objPosition = intersect.object.geometry.getAttribute("position")
-						const z1 = objPosition.getZ(intersect.face.a)
-						const z2 = objPosition.getZ(intersect.face.b)
-						const z3 = objPosition.getZ(intersect.face.c)
-						objPosition.setZ(intersect.face.a, Math.max(z1 - 0.01, -maxHeight))
-						objPosition.setZ(intersect.face.b, Math.max(z2 - 0.01, -maxHeight))
-						objPosition.setZ(intersect.face.c, Math.max(z3 - 0.01, -maxHeight))
-						objPosition.needsUpdate = true
+						transformPlane(intersect, ball1Radius, maxHeight, -1)
+					} 
+				} else {
+					if (controller1.userData.selected) {
+						ball1Radius = Math.max(ball1Radius - 0.01, 1)
+						ball1.scale.x = ball1Radius / 2
+						ball1.scale.y = ball1Radius / 2
+						ball1.scale.z = ball1Radius / 2
+					} else if (controller1.userData.squeezed) {
+						ball1Radius = Math.min(ball1Radius + 0.01, 10)
+						ball1.scale.x = ball1Radius / 2
+						ball1.scale.y = ball1Radius / 2
+						ball1.scale.z = ball1Radius / 2
 					} 
 				}
 
@@ -247,6 +227,47 @@
 
 				renderer.render( scene, camera );
 			} );
+
+			function getNearestFaceVertex(objPosition, intersect) {
+				const point = intersect.point
+				const face = intersect.face
+
+				let nearestDist = Number.POSITIVE_INFINITY
+				let nearestPoint
+				let nearestId
+				for (let pid of [face.a, face.b, face.c]) {
+					const vertex = getFaceVertex(objPosition, pid)
+					const dist = point.distanceTo(vertex)
+					if (dist < nearestDist) {
+						nearestPoint = point
+						nearestId = pid
+					}
+				}
+				return [nearestId, nearestPoint]
+			}
+
+			function getFaceVertex(objPosition, id) {
+				return new THREE.Vector3(objPosition.getX(id), objPosition.getY(id), objPosition.getZ(id))
+			}
+			
+			function transformPlane(intersect, radius, maxHeight, direction) {
+				radius = Math.floor(radius)
+				const objPosition = intersect.object.geometry.getAttribute("position")
+				const [base, basePoint] = getNearestFaceVertex(objPosition, intersect)
+				for (let dy = -radius; dy <= radius; dy++) {
+					for (let dx = -radius; dx <= radius; dx++) {
+						const len = Math.sqrt(dx * dx + dy * dy)
+						if (len < radius) {
+							const coeff = (Math.cos(len / radius * Math.PI) + 1) / 2 * (direction < 0 ? -1 : 1)
+							const pid = base + dx * 101 + dy
+							const z = objPosition.getZ(pid)
+							objPosition.setZ(pid, Math.min(z + 0.01 * coeff, maxHeight))
+						}
+					}
+				}
+				objPosition.needsUpdate = true
+				intersect.object.geometry.computeVertexNormals()
+			}
 		</script>
 	</body>
 </html>
