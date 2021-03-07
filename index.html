@@ -196,6 +196,7 @@
 					direction.normalize()
 					direction.multiplyScalar(0.05)
 
+					// 前後
 					if (controller2.userData.selected) {
 						// 前進
 						cameraBase.position.x += direction.x
@@ -206,8 +207,10 @@
 						cameraBase.position.z -= direction.y
 					} 
 
+					// 回転
 					if (controller2.userData.selected || controller2.userData.squeezed) {
 						const cameraDirection3 = camera.getWorldDirection(new THREE.Vector3())
+						cameraDirection3.applyMatrix4(cameraBase2Mat)
 						const cameraDirection2 = new THREE.Vector2(cameraDirection3.x, cameraDirection3.z)
 						let angle = Math.acos(direction.dot(cameraDirection2)/direction.length()/cameraDirection2.length())
 
