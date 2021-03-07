@@ -76,6 +76,12 @@
 			const ball2 = new THREE.Mesh(ballGeometry2, ballMaterial2)
 			scene.add(ball2)
 
+			// focus
+			const ballGeometry3 = new THREE.SphereGeometry(0.1)
+			const ballMaterial3 = new THREE.MeshBasicMaterial({color:0x00ff00})
+			const focus = new THREE.Mesh(ballGeometry3, ballMaterial3)
+			scene.add(focus)
+
 
 				// controllers
 
@@ -135,6 +141,23 @@
 			renderer.xr.enabled = true;
 			renderer.setAnimationLoop( function () {
 
+				// 視点表示
+				const direction0 = new THREE.Vector3(0, 0, -1)
+				const camera0Mat = new THREE.Matrix4().makeRotationFromEuler(camera.rotation)
+				const cameraBase0Mat = new THREE.Matrix4().makeRotationFromEuler(cameraBase.rotation)
+				const rotation0 = cameraBase0Mat.multiply(camera0Mat)
+				direction0.applyMatrix4(rotation0)
+
+				raycaster.set(cameraBase.position, direction0)
+				let intersects0 = raycaster.intersectObject(floor)
+				if (intersects0.length === 0) {
+					focus.position.copy(cameraBase.position)
+					focus.position.add(direction0.clone().multiplyScalar(10))
+				} else {
+					const intersect = intersects0[0]
+					focus.position.copy(intersect.point)
+				}
+
 				// 地形操作
 				const direction1 = new THREE.Vector3(0, 0, -1)
 				const controller1Mat = new THREE.Matrix4().makeRotationFromEuler(controller1.rotation)
@@ -160,6 +183,9 @@
 						transformPlane(intersect, ball1Radius, maxHeight, -1)
 					} 
 				} else {
+					ball1.position.copy(position1)
+					ball1.position.add(direction1.clone().multiplyScalar(20))
+
 					// 操作範囲変更
 					if (controller1.userData.selected) {
 						// 大きく
@@ -209,9 +235,7 @@
 
 					// 回転
 					if (controller2.userData.selected || controller2.userData.squeezed) {
-						const cameraDirection3 = camera.getWorldDirection(new THREE.Vector3())
-						cameraDirection3.applyMatrix4(cameraBase2Mat)
-						const cameraDirection2 = new THREE.Vector2(cameraDirection3.x, cameraDirection3.z)
+						const cameraDirection2 = new THREE.Vector2(direction0.x, direction0.z)
 						let angle = Math.acos(direction.dot(cameraDirection2)/direction.length()/cameraDirection2.length())
 
 						if (controller2.userData.selected) {
@@ -226,6 +250,9 @@
 						}
 					}
 				} else {
+					ball2.position.copy(position2)
+					ball2.position.add(direction2.clone().multiplyScalar(10))
+
 					// 上下移動
 					const speed = 0.05
 					if (controller2.userData.selected) {
