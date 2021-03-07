@@ -19,8 +19,13 @@
 			const scene = new THREE.Scene();
 			const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
+			const cameraBase = new THREE.Object3D()
+			scene.add(cameraBase)
+			cameraBase.add(camera)
+
 			const renderer = new THREE.WebGLRenderer({canvas:document.getElementById("gl")});
 			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setClearColor(new THREE.Color(0, 0, 1))
 
 			const light = new THREE.DirectionalLight(0xffffff, 1.5)
 			light.position.set(1, 0.5, -0.8)
@@ -35,6 +40,7 @@
 			const floorGeometry = new THREE.PlaneGeometry( 50, 50, 100, 100 );
 			const floorMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff } );
 			floorMaterial.flatShading = true
+			//floorMaterial.vertexColors = true
 			const floor = new THREE.Mesh( floorGeometry, floorMaterial );
 			floor.rotation.x = - Math.PI / 2;
 			floor.position.y = -baseHeight
@@ -78,14 +84,14 @@
 				controller1.addEventListener( 'selectend', () => { controller1.userData.selected = false } );
 				controller1.addEventListener( 'squeezestart', () => { controller1.userData.squeezed = true } );
 				controller1.addEventListener( 'squeezeend', () => { controller1.userData.squeezed = false } );
-				scene.add( controller1 );
+				cameraBase.add(controller1)
 
 				const controller2 = renderer.xr.getController( 1 );
 				controller2.addEventListener( 'selectstart', () => { controller2.userData.selected = true } );
 				controller2.addEventListener( 'selectend', () => { controller2.userData.selected = false } );
 				controller2.addEventListener( 'squeezestart', () => { controller2.userData.squeezed = true } );
 				controller2.addEventListener( 'squeezeend', () => { controller2.userData.squeezed = false } );
-				scene.add( controller2 );
+				cameraBase.add(controller2)
 
 				const controllerModelFactory = new XRControllerModelFactory();
 				const handModelFactory = new XRHandModelFactory().setPath( "./models/fbx/" );
@@ -93,21 +99,21 @@
 				// Hand 1: right
 				const controllerGrip1 = renderer.xr.getControllerGrip( 0 );
 				controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
-				scene.add( controllerGrip1 );
+				cameraBase.add( controllerGrip1 );
 
 				const hand1 = renderer.xr.getHand( 0 );
 				hand1.add( handModelFactory.createHandModel( hand1 ) );
 
-				scene.add( hand1 );
+				cameraBase.add( hand1 );
 
 				// Hand 2: left
 				const controllerGrip2 = renderer.xr.getControllerGrip( 1 );
 				controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
-				scene.add( controllerGrip2 );
+				cameraBase.add( controllerGrip2 );
 
 				const hand2 = renderer.xr.getHand( 1 );
 				hand2.add( handModelFactory.createHandModel( hand2 ) );
-				scene.add( hand2 );
+				cameraBase.add( hand2 );
 
 				//
 
@@ -131,8 +137,14 @@
 
 				// 地形操作
 				const direction1 = new THREE.Vector3(0, 0, -1)
-				direction1.applyEuler(controller1.rotation)
-				raycaster.set(controller1.position, direction1)
+				const controller1Mat = new THREE.Matrix4().makeRotationFromEuler(controller1.rotation)
+				const cameraBase1Mat = new THREE.Matrix4().makeRotationFromEuler(cameraBase.rotation)
+				const rotation1 = cameraBase1Mat.multiply(controller1Mat)
+				const position1 = controller1.position.clone().applyEuler(cameraBase.rotation).add(cameraBase.position)
+				direction1.applyMatrix4(rotation1)
+
+				raycaster.set(position1, direction1)
+
 				let intersects = raycaster.intersectObject(floor)
 				if (0 < intersects.length) {
 					// 地形操作
@@ -150,12 +162,14 @@
 				} else {
 					// 操作範囲変更
 					if (controller1.userData.selected) {
-						ball1Radius = Math.max(ball1Radius - 0.01, 1)
+						// 大きく
+						ball1Radius = Math.min(ball1Radius + 0.01, 10)
 						ball1.scale.x = ball1Radius / 2
 						ball1.scale.y = ball1Radius / 2
 						ball1.scale.z = ball1Radius / 2
 					} else if (controller1.userData.squeezed) {
-						ball1Radius = Math.min(ball1Radius + 0.01, 10)
+						// 小さく
+						ball1Radius = Math.max(ball1Radius - 0.01, 1)
 						ball1.scale.x = ball1Radius / 2
 						ball1.scale.y = ball1Radius / 2
 						ball1.scale.z = ball1Radius / 2
@@ -164,8 +178,14 @@
 
 				// 移動
 				const direction2 = new THREE.Vector3(0, 0, -1)
-				direction2.applyEuler(controller2.rotation)
-				raycaster.set(controller2.position, direction2)
+				const controller2Mat = new THREE.Matrix4().makeRotationFromEuler(controller2.rotation)
+				const cameraBase2Mat = new THREE.Matrix4().makeRotationFromEuler(cameraBase.rotation)
+				const rotation2 = cameraBase2Mat.multiply(controller2Mat)
+				const position2 = controller2.position.clone().applyEuler(cameraBase.rotation).add(cameraBase.position)
+				direction2.applyMatrix4(rotation2)
+
+				raycaster.set(position2, direction2)
+
 				intersects = raycaster.intersectObject(floor)
 				if (0 < intersects.length) {
 					// 平面移動
@@ -178,36 +198,28 @@
 
 					if (controller2.userData.selected) {
 						// 前進
-						floor.position.x -= direction.x
-						floor.position.z -= direction.y
-						for (const water of waters) {
-							water.position.x -= direction.x
-							water.position.z -= direction.y
-						}
+						cameraBase.position.x += direction.x
+						cameraBase.position.z += direction.y
 					} else if (controller2.userData.squeezed) {
 						// 後退
-						floor.position.x += direction.x
-						floor.position.z += direction.y
-						for (const water of waters) {
-							water.position.x += direction.x
-							water.position.z += direction.y
-						}
+						cameraBase.position.x -= direction.x
+						cameraBase.position.z -= direction.y
 					} 
 
 					if (controller2.userData.selected || controller2.userData.squeezed) {
 						const cameraDirection3 = camera.getWorldDirection(new THREE.Vector3())
 						const cameraDirection2 = new THREE.Vector2(cameraDirection3.x, cameraDirection3.z)
 						let angle = Math.acos(direction.dot(cameraDirection2)/direction.length()/cameraDirection2.length())
+
+						if (controller2.userData.selected) {
+							angle *= -1
+						}
+
+						// 回転
 						if (0 < direction.cross(cameraDirection2)) {
-							floor.rotation.z -= 0.005 * angle
-							for (const water of waters) {
-								water.rotation.z -= 0.005 * angle
-							}
+							cameraBase.rotation.y -= 0.005 * angle
 						} else {
-							floor.rotation.z += 0.005 * angle
-							for (const water of waters) {
-								water.rotation.z += 0.005 * angle
-							}
+							cameraBase.rotation.y += 0.005 * angle
 						}
 					}
 				} else {
@@ -215,18 +227,11 @@
 					const speed = 0.05
 					if (controller2.userData.selected) {
 						// 上昇
-						floor.position.y -= speed
-						for (const water of waters) {
-							water.position.y -= speed
-						}
+						cameraBase.position.y += speed
 					} else if (controller2.userData.squeezed) {
 						// 下降
-						floor.position.y += speed
-						for (const water of waters) {
-							water.position.y += speed
-						}
+						cameraBase.position.y -= speed
 					} 
-
 				}
 
 				renderer.render( scene, camera );
