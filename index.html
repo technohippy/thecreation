@@ -342,57 +342,63 @@ void main() {
 				direction0.applyMatrix4(rotation0)
 
 				raycaster.set(cameraBase.position, direction0)
-				let intersects0 = raycaster.intersectObject(floor)
-				if (intersects0.length === 0) {
+				let intersects = raycaster.intersectObject(floor)
+				if (intersects.length === 0) {
 					focus.position.copy(cameraBase.position)
 					focus.position.add(direction0.clone().multiplyScalar(10))
 				} else {
-					const intersect = intersects0[0]
+					const intersect = intersects[0]
 					focus.position.copy(intersect.point)
 				}
 
-				// 地形操作
-				const direction1 = new THREE.Vector3(0, 0, -1)
-				const controller1Mat = new THREE.Matrix4().makeRotationFromEuler(controller1.rotation)
-				const cameraBase1Mat = new THREE.Matrix4().makeRotationFromEuler(cameraBase.rotation)
-				const rotation1 = cameraBase1Mat.multiply(controller1Mat)
-				const position1 = controller1.position.clone().applyEuler(cameraBase.rotation).add(cameraBase.position)
-				direction1.applyMatrix4(rotation1)
+				if (controller1.userData.selected && controller1.userData.squeezed) {
+					ball1.visible = !ball1.visible
+				}
 
-				raycaster.set(position1, direction1)
-
-				let intersects = raycaster.intersectObject(floor)
-				if (0 < intersects.length) {
+				if (ball1.visible) {
 					// 地形操作
-					const intersect = intersects[0]
-					ball1.position.copy(intersect.point)
+					const direction1 = new THREE.Vector3(0, 0, -1)
+					const controller1Mat = new THREE.Matrix4().makeRotationFromEuler(controller1.rotation)
+					const cameraBase1Mat = new THREE.Matrix4().makeRotationFromEuler(cameraBase.rotation)
+					const rotation1 = cameraBase1Mat.multiply(controller1Mat)
+					const position1 = controller1.position.clone().applyEuler(cameraBase.rotation).add(cameraBase.position)
+					direction1.applyMatrix4(rotation1)
 
-					const maxHeight = 10
-					if (controller1.userData.selected) {
-						// 盛り上げる
-						transformPlane(intersect, ball1Radius, maxHeight, 1)
-					} else if (controller1.userData.squeezed) {
-						// 凹ませる
-						transformPlane(intersect, ball1Radius, maxHeight, -1)
-					} 
-				} else {
-					ball1.position.copy(position1)
-					ball1.position.add(direction1.clone().multiplyScalar(20))
+					raycaster.set(position1, direction1)
 
-					// 操作範囲変更
-					if (controller1.userData.selected) {
-						// 大きく
-						ball1Radius = Math.min(ball1Radius + 0.01, 10)
-						ball1.scale.x = ball1Radius / 2
-						ball1.scale.y = ball1Radius / 2
-						ball1.scale.z = ball1Radius / 2
-					} else if (controller1.userData.squeezed) {
-						// 小さく
-						ball1Radius = Math.max(ball1Radius - 0.01, 1)
-						ball1.scale.x = ball1Radius / 2
-						ball1.scale.y = ball1Radius / 2
-						ball1.scale.z = ball1Radius / 2
-					} 
+					intersects = raycaster.intersectObject(floor)
+					if (0 < intersects.length) {
+						// 地形操作
+						const intersect = intersects[0]
+						ball1.position.copy(intersect.point)
+
+						const maxHeight = 10
+						if (controller1.userData.selected) {
+							// 盛り上げる
+							transformPlane(intersect, ball1Radius, maxHeight, 1)
+						} else if (controller1.userData.squeezed) {
+							// 凹ませる
+							transformPlane(intersect, ball1Radius, maxHeight, -1)
+						} 
+					} else {
+						ball1.position.copy(position1)
+						ball1.position.add(direction1.clone().multiplyScalar(20))
+
+						// 操作範囲変更
+						if (controller1.userData.selected) {
+							// 大きく
+							ball1Radius = Math.min(ball1Radius + 0.01, 10)
+							ball1.scale.x = ball1Radius / 2
+							ball1.scale.y = ball1Radius / 2
+							ball1.scale.z = ball1Radius / 2
+						} else if (controller1.userData.squeezed) {
+							// 小さく
+							ball1Radius = Math.max(ball1Radius - 0.01, 1)
+							ball1.scale.x = ball1Radius / 2
+							ball1.scale.y = ball1Radius / 2
+							ball1.scale.z = ball1Radius / 2
+						} 
+					}
 				}
 
 				// 移動
