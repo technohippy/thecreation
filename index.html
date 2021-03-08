@@ -233,7 +233,7 @@ void main() {
 				vertexShader:document.getElementById("vert-shader").textContent,
 				fragmentShader:document.getElementById("frag-shader").textContent,
 			})
-			floorMaterial.flatShading = true
+			//floorMaterial.flatShading = true
 
 			const floor = new THREE.Mesh( floorGeometry, floorMaterial );
 			floor.rotation.x = - Math.PI / 2;
@@ -412,36 +412,32 @@ void main() {
 					ball2.position.copy(intersect.point)
 
 					const direction = new THREE.Vector2(intersect.point.x, intersect.point.z)
+					direction.sub(new THREE.Vector2(cameraBase.position.x, cameraBase.position.z))
 					direction.normalize()
-					direction.multiplyScalar(0.05)
+					const speed = 0.05
 
-					// 前後
 					if (controller2.userData.selected) {
-						// 前進
-						cameraBase.position.x += direction.x
-						cameraBase.position.z += direction.y
+						if (controller2.userData.squeezed) {
+							// 同時押し
+							// 回転
+							const cameraDirection2 = new THREE.Vector2(direction0.x, direction0.z)
+							let angle = Math.acos(direction.dot(cameraDirection2)/direction.length()/cameraDirection2.length())
+							let speed = 0.01
+							if (0 < direction.cross(cameraDirection2)) {
+								cameraBase.rotation.y += speed * angle
+							} else {
+								cameraBase.rotation.y -= speed * angle
+							}
+						} else {
+							// 前進
+							cameraBase.position.x += direction.x * speed
+							cameraBase.position.z += direction.y * speed
+						} 
 					} else if (controller2.userData.squeezed) {
 						// 後退
-						cameraBase.position.x -= direction.x
-						cameraBase.position.z -= direction.y
+						cameraBase.position.x -= direction.x * speed
+						cameraBase.position.z -= direction.y * speed
 					} 
-
-					// 回転
-					if (controller2.userData.selected || controller2.userData.squeezed) {
-						const cameraDirection2 = new THREE.Vector2(direction0.x, direction0.z)
-						let angle = Math.acos(direction.dot(cameraDirection2)/direction.length()/cameraDirection2.length())
-
-						if (controller2.userData.selected) {
-							angle *= -1
-						}
-
-						// 回転
-						if (0 < direction.cross(cameraDirection2)) {
-							cameraBase.rotation.y -= 0.005 * angle
-						} else {
-							cameraBase.rotation.y += 0.005 * angle
-						}
-					}
 				} else {
 					ball2.position.copy(position2)
 					ball2.position.add(direction2.clone().multiplyScalar(10))
@@ -486,6 +482,7 @@ void main() {
 				radius = Math.floor(radius)
 				const objPosition = intersect.object.geometry.getAttribute("position")
 				const [base, basePoint] = getNearestFaceVertex(objPosition, intersect)
+				const transformSpeed = 0.03 * radius
 				for (let dy = -radius; dy <= radius; dy++) {
 					for (let dx = -radius; dx <= radius; dx++) {
 						const len = Math.sqrt(dx * dx + dy * dy)
