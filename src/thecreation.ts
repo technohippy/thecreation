@@ -80,6 +80,7 @@ export class TheCreation {
 			// 地形操作ポインタ表示
 			if (0 < intersects.length) {
 				this.#transformPointer.position.copy(intersects[0].point)
+				this.#validateDollyPosition()
 			} else {
 				this.#transformPointer.position.copy(position)
 				this.#transformPointer.position.add(direction.clone().multiplyScalar(20))
@@ -98,6 +99,7 @@ export class TheCreation {
 				// 盛り上げる
 				const intersect = intersects[0]
 				this.#terrain.transform(intersect, this.#transformRange, transformMaxHeight, 1)
+				this.#validateDollyPosition()
 			} else {
 				// 操作範囲を大きく
 				this.#setTransformRange(Math.min(this.#transformRange + 0.01, transformMaxRange))
@@ -167,6 +169,8 @@ export class TheCreation {
 				const speed = 0.05
 				control.dolly.position.y += speed
 			}
+
+			this.#validateDollyPosition()
 		})
 
 		this.#moveControl.addEventListener("squeezed", (control, intersects, position, direction) => {
@@ -185,6 +189,8 @@ export class TheCreation {
 				const speed = 0.05
 				control.dolly.position.y -= speed
 			}
+
+			this.#validateDollyPosition()
 		})
 	}
 
@@ -193,6 +199,13 @@ export class TheCreation {
 		this.#transformPointer.scale.x = this.#transformRange / 2
 		this.#transformPointer.scale.y = this.#transformRange / 2
 		this.#transformPointer.scale.z = this.#transformRange / 2
+	}
+
+	#validateDollyPosition = () => {
+		const height = this.#terrain.heightAt(this.#dolly.position)
+		if (this.#dolly.position.y < height) {
+			this.#dolly.position.y = height
+		}
 	}
 
 	createVRButton(container:HTMLElement) {
