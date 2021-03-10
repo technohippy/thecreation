@@ -1,16 +1,17 @@
 import * as THREE from "./three/build/three.module.js"
 import { TerrainMaterial } from "./tarrainmaterial.js"
 
-export class Terrain extends THREE.Mesh {
+export class Terrain extends THREE.InstancedMesh {
 	#width:number
 	#height:number
 	#widthSegments:number
 	#heightSegments:number
 
-	constructor(width:number, height:number, widthSegments=100, heightSegments=100) {
+	constructor(width:number, height:number, widthSegments=100, heightSegments=100, instanceSize=0) {
 		super(
 			new THREE.PlaneGeometry(width, height, widthSegments, heightSegments),
 			new TerrainMaterial(),
+			Math.pow(instanceSize * 2 + 1, 2),
 		)
 		this.#width = width
 		this.#height = height
@@ -19,11 +20,22 @@ export class Terrain extends THREE.Mesh {
 
 		this.rotation.x = -Math.PI / 2
 
+		const dummy = new THREE.Object3D()
+		for (let dz = -instanceSize; dz <= instanceSize; dz++) {
+			for (let dx = -instanceSize; dx <= instanceSize; dx++) {
+				dummy.position.set(dx * this.#width, dz * this.#height, 0)
+				dummy.updateMatrix()
+				const index = (dz + instanceSize) * (instanceSize * 2 + 1) + (dx + instanceSize)
+				this.setMatrixAt(index, dummy.matrix)
+			}
+		}
+
 		const water = new THREE.Mesh(
-			new THREE.PlaneGeometry(width, height),
-			new THREE.MeshStandardMaterial({color: 0xbbbbff, opacity: 0.8, transparent:true, side: THREE.DoubleSide})
+			new THREE.PlaneGeometry(width * (instanceSize * 2 + 1), height * (instanceSize * 2 + 1)),
+			new THREE.MeshStandardMaterial({color: 0xbbbbff, opacity: 0.8, transparent:true, side: THREE.DoubleSide}),
 		)
 		water.position.z = -0.01
+
 		this.add(water)
 	}
 

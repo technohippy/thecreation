@@ -9,7 +9,7 @@ export type TheCreationConfig = {
 }
 
 const transformMinRange = 1
-const transformMaxRange = 10
+const transformMaxRange = 20
 const transformMaxHeight = 10
 
 export class TheCreation {
@@ -102,7 +102,7 @@ export class TheCreation {
 				this.#validateDollyPosition()
 			} else {
 				// 操作範囲を大きく
-				this.#setTransformRange(Math.min(this.#transformRange + 0.01, transformMaxRange))
+				this.#setTransformRange(Math.min(this.#transformRange + 0.02, transformMaxRange))
 			}
 		})
 
@@ -115,7 +115,7 @@ export class TheCreation {
 				this.#terrain.transform(intersect, this.#transformRange, transformMaxHeight, -1)
 			} else {
 				// 操作範囲を小さく
-				this.#setTransformRange(Math.max(this.#transformRange - 0.01, transformMinRange))
+				this.#setTransformRange(Math.max(this.#transformRange - 0.02, transformMinRange))
 			}
 		})
 	}
