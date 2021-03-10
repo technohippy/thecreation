@@ -15,26 +15,33 @@ const transformMaxHeight = 10
 export class TheCreation {
 	#scene: THREE.Scene
 	#dolly: Dolly
+	#focus: THREE.Mesh
 	#renderer: THREE.WebGLRenderer
 	#terrain: Terrain
-	#terrainControl: TerrainControl
-	#terrainPointer: THREE.Mesh
+	#transformControl: TerrainControl
+	#transformPointer: THREE.Mesh
 	#transformRange: number
 	#moveControl: TerrainControl
 	#movePointer: THREE.Mesh
 
 	constructor(config:TheCreationConfig) {
 		this.#scene = new THREE.Scene()
+
 		const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 		this.#dolly = new Dolly(camera)
+		this.#focus = new THREE.Mesh(
+			new THREE.SphereGeometry(0.1),
+			new THREE.MeshBasicMaterial({color:0x00ff00}),
+		)
+
 		this.#terrain = new Terrain(50, 50)
 		this.#renderer = new THREE.WebGLRenderer({canvas:document.getElementById(config.containerId)});
 		this.#renderer.setSize(window.innerWidth, window.innerHeight);
 		this.#renderer.setClearColor(new THREE.Color(0.3, 0.5, 1))
 		this.#renderer.xr.enabled = true
 
-		this.#terrainControl = new TerrainControl(this.#dolly, this.#renderer.xr, 0)
-		this.#terrainPointer = new THREE.Mesh(
+		this.#transformControl = new TerrainControl(this.#dolly, this.#renderer.xr, 0)
+		this.#transformPointer = new THREE.Mesh(
 			new THREE.SphereGeometry(1),
 			new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity: 0.5})
 		)
@@ -47,7 +54,8 @@ export class TheCreation {
 		)
 
 		this.#initScene()
-		this.#setupControls()
+		this.#setupTransformControl()
+		this.#setupMoveControl()
 	}
 
 	#initScene = () => {
@@ -61,29 +69,30 @@ export class TheCreation {
 		this.#scene.add(light2)
 		this.#scene.add(this.#terrain)
 		this.#scene.add(this.#dolly)
-		this.#scene.add(this.#terrainPointer)
+		this.#scene.add(this.#focus)
+		this.#scene.add(this.#transformPointer)
 		this.#scene.add(this.#movePointer)
 	}
 
-	#setupControls = () => {
+	#setupTransformControl = () => {
 		// 地形操作
-		this.#terrainControl.addEventListener("always", (control, intersects, position, direction) => {
+		this.#transformControl.addEventListener("always", (control, intersects, position, direction) => {
 			// 地形操作ポインタ表示
 			if (0 < intersects.length) {
-				this.#terrainPointer.position.copy(intersects[0].point)
+				this.#transformPointer.position.copy(intersects[0].point)
 			} else {
-				this.#terrainPointer.position.copy(position)
-				this.#terrainPointer.position.add(direction.clone().multiplyScalar(20))
+				this.#transformPointer.position.copy(position)
+				this.#transformPointer.position.add(direction.clone().multiplyScalar(20))
 			}
 		})
 
-		this.#terrainControl.addEventListener("selected&squeezed", (control, intersects, position, direction) => {
+		this.#transformControl.addEventListener("selected&squeezed", (control, intersects, position, direction) => {
 			// 地形操作ポインタ切り替え
-			this.#terrainPointer.visible = !this.#terrainPointer.visible
+			this.#transformPointer.visible = !this.#transformPointer.visible
 		})
 
-		this.#terrainControl.addEventListener("selected", (control, intersects, position, direction) => {
-			if (!this.#terrainPointer.visible) return
+		this.#transformControl.addEventListener("selected", (control, intersects, position, direction) => {
+			if (!this.#transformPointer.visible) return
 
 			if (0 < intersects.length) {
 				// 盛り上げる
@@ -95,8 +104,8 @@ export class TheCreation {
 			}
 		})
 
-		this.#terrainControl.addEventListener("squeezed", (control, intersects, position, direction) => {
-			if (!this.#terrainPointer.visible) return
+		this.#transformControl.addEventListener("squeezed", (control, intersects, position, direction) => {
+			if (!this.#transformPointer.visible) return
 
 			if (0 < intersects.length) {
 				// 凹ませる
@@ -107,7 +116,9 @@ export class TheCreation {
 				this.#setTransformRange(Math.max(this.#transformRange - 0.01, transformMinRange))
 			}
 		})
+	}
 
+	#setupMoveControl = () => {
 		// 移動
 		this.#moveControl.addEventListener("always", (control, intersects, position, direction) => {
 			// 移動ポインタ表示
@@ -120,18 +131,19 @@ export class TheCreation {
 			}
 		})
 
-		this.#moveControl.addEventListener("selected&squeezed", (control, intersects, position, direction) => {
+		this.#moveControl.addEventListener("selected&squeezed", (control, intersects, position, controlDirection) => {
 			// 回転
 			if (0 < intersects.length) {
 				const intersect = intersects[0]
-				const direction = new THREE.Vector2(intersect.point.x, intersect.point.z)
-				direction.sub(new THREE.Vector2(control.dolly.position.x, control.dolly.position.z))
-				direction.normalize()
+				const pointerDirection = new THREE.Vector2(intersect.point.x, intersect.point.z)
+				pointerDirection.sub(new THREE.Vector2(control.dolly.position.x, control.dolly.position.z))
+				pointerDirection.normalize()
 				const speed = 0.01
 
-				const cameraDirection2 = new THREE.Vector2(direction.x, direction.z)
-				let angle = Math.acos(direction.dot(cameraDirection2)/direction.length()/cameraDirection2.length())
-				if (0 < direction.cross(cameraDirection2)) {
+				const dollyDirection3 = this.#dolly.getDirection()
+				const dollyDirection = new THREE.Vector2(dollyDirection3.x, dollyDirection3.z)
+				let angle = Math.acos(pointerDirection.dot(dollyDirection))
+				if (0 < pointerDirection.cross(dollyDirection)) {
 					control.dolly.rotation.y += speed * angle
 				} else {
 					control.dolly.rotation.y -= speed * angle
@@ -178,9 +190,9 @@ export class TheCreation {
 
 	#setTransformRange = (val:number) => {
 		this.#transformRange = val
-		this.#terrainPointer.scale.x = this.#transformRange / 2
-		this.#terrainPointer.scale.y = this.#transformRange / 2
-		this.#terrainPointer.scale.z = this.#transformRange / 2
+		this.#transformPointer.scale.x = this.#transformRange / 2
+		this.#transformPointer.scale.y = this.#transformRange / 2
+		this.#transformPointer.scale.z = this.#transformRange / 2
 	}
 
 	createVRButton(container:HTMLElement) {
@@ -195,7 +207,9 @@ export class TheCreation {
 	}
 
 	#step = () => {
-		this.#terrainControl.handleEvent(this.#terrain)
+		this.#transformControl.handleEvent(this.#terrain)
 		this.#moveControl.handleEvent(this.#terrain)
+
+		this.#focus.position.copy(this.#dolly.focusPoint(this.#terrain, 10))
 	}
 }
