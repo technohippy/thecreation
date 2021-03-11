@@ -14,6 +14,17 @@ export class TerrainControl {
 
 	#listeners = new Map<TerrainEvent, ((control:TerrainControl, intersects:any[], position:THREE.Vector3, direction:THREE.Vector3)=>void)[]>()
 
+	get visible(): boolean {
+		return this.#line.visible
+	}
+
+	set visible(val:boolean) {
+		//this.#controller = val
+		//this.#grip = val
+		//this.#hand = val
+		this.#line.visible = val
+	}
+
 	constructor(dolly:THREE.Object3D, xr: THREE.WebXRManager, index:number) {
 		this.#raycaster = new THREE.Raycaster()
 		this.dolly = dolly

@@ -25,10 +25,13 @@ export class TheCreation {
 	#movePointer: THREE.Mesh
 
 	constructor(config:TheCreationConfig) {
+		const clearColor = new THREE.Color(0.3, 0.5, 1)
 		this.#scene = new THREE.Scene()
+		//this.#scene.fog = new THREE.Fog(clearColor, 60, 150)
 
 		const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 		this.#dolly = new Dolly(camera)
+		this.#dolly.position.y = 5
 		this.#focus = new THREE.Mesh(
 			new THREE.SphereGeometry(0.1),
 			new THREE.MeshBasicMaterial({color:0x00ff00}),
@@ -37,7 +40,7 @@ export class TheCreation {
 		this.#terrain = new Terrain(50, 50)
 		this.#renderer = new THREE.WebGLRenderer({canvas:document.getElementById(config.containerId)});
 		this.#renderer.setSize(window.innerWidth, window.innerHeight);
-		this.#renderer.setClearColor(new THREE.Color(0.3, 0.5, 1))
+		this.#renderer.setClearColor(clearColor)
 		this.#renderer.xr.enabled = true
 
 		this.#transformControl = new TerrainControl(this.#dolly, this.#renderer.xr, 0)
@@ -88,7 +91,8 @@ export class TheCreation {
 		})
 
 		this.#transformControl.addEventListener("selected&squeezed", (control, intersects, position, direction) => {
-			// 地形操作ポインタ切り替え
+			// 地形操作ポインタ表示／非表示
+			this.#transformControl.visible = !this.#transformControl.visible
 			this.#transformPointer.visible = !this.#transformPointer.visible
 		})
 

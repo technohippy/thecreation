@@ -4,6 +4,7 @@ export class TerrainMaterial extends THREE.ShaderMaterial {
 	constructor() {
 		super({
 				lights:true,
+				fog:true,
 				uniforms:THREE.UniformsUtils.merge([
 					THREE.ShaderLib.phong.uniforms,
 					{},

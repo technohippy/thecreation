@@ -1,5 +1,7 @@
 import * as THREE from "./three/build/three.module.js"
 import { TerrainMaterial } from "./tarrainmaterial.js"
+import { Grass } from "./grass.js"
+import { FlatGeometry } from "./flatgeometry.js"
 
 export class Terrain extends THREE.InstancedMesh {
 	#width:number
@@ -10,6 +12,7 @@ export class Terrain extends THREE.InstancedMesh {
 	constructor(width:number, height:number, widthSegments=100, heightSegments=100, instanceSize=0) {
 		super(
 			new THREE.PlaneGeometry(width, height, widthSegments, heightSegments),
+			//new FlatGeometry(width, height, widthSegments, heightSegments),
 			new TerrainMaterial(),
 			Math.pow(instanceSize * 2 + 1, 2),
 		)
@@ -30,13 +33,18 @@ export class Terrain extends THREE.InstancedMesh {
 			}
 		}
 
+		// water
 		const water = new THREE.Mesh(
 			new THREE.PlaneGeometry(width * (instanceSize * 2 + 1), height * (instanceSize * 2 + 1)),
 			new THREE.MeshStandardMaterial({color: 0xbbbbff, opacity: 0.8, transparent:true, side: THREE.DoubleSide}),
 		)
 		water.position.z = -0.01
-
 		this.add(water)
+
+		// grass
+		const grass = new Grass(this.geometry)
+		grass.position.z = 0.1
+		this.add(grass)
 	}
 
 	heightAt(p: THREE.Vector3): number {
