@@ -11,8 +11,7 @@ export class Terrain extends THREE.InstancedMesh {
 
 	constructor(width:number, height:number, widthSegments=100, heightSegments=100, instanceSize=0) {
 		super(
-			new THREE.PlaneGeometry(width, height, widthSegments, heightSegments),
-			//new FlatGeometry(width, height, widthSegments, heightSegments),
+			new FlatGeometry(width, height, widthSegments, heightSegments),
 			new TerrainMaterial(),
 			Math.pow(instanceSize * 2 + 1, 2),
 		)
@@ -20,8 +19,6 @@ export class Terrain extends THREE.InstancedMesh {
 		this.#height = height
 		this.#widthSegments = widthSegments
 		this.#heightSegments = heightSegments
-
-		this.rotation.x = -Math.PI / 2
 
 		const dummy = new THREE.Object3D()
 		for (let dz = -instanceSize; dz <= instanceSize; dz++) {
@@ -35,15 +32,15 @@ export class Terrain extends THREE.InstancedMesh {
 
 		// water
 		const water = new THREE.Mesh(
-			new THREE.PlaneGeometry(width * (instanceSize * 2 + 1), height * (instanceSize * 2 + 1)),
+			new FlatGeometry(width * (instanceSize * 2 + 1), height * (instanceSize * 2 + 1)),
 			new THREE.MeshStandardMaterial({color: 0xbbbbff, opacity: 0.8, transparent:true, side: THREE.DoubleSide}),
 		)
-		water.position.z = -0.01
+		water.position.y = -0.01
 		this.add(water)
 
 		// grass
 		const grass = new Grass(this.geometry)
-		grass.position.z = 0.1
+		grass.position.y = 0.1
 		this.add(grass)
 	}
 
@@ -61,7 +58,7 @@ export class Terrain extends THREE.InstancedMesh {
 			for (let dx = -1; dx <= 1; dx++) {
 				const xx = clamp(x + dx, 0, this.#widthSegments)
 				const pid = zz * (this.#widthSegments + 1) + xx
-				const h = position.getZ(pid)
+				const h = position.getY(pid)
 				if (height < h) height = h
 			}
 		}
@@ -74,14 +71,14 @@ export class Terrain extends THREE.InstancedMesh {
 		const position = this.geometry.getAttribute("position")
 		const [base, basePoint] = this.#getNearestFaceVertex(position, intersect)
 		const transformSpeed = 0.03 * radius
-		for (let dy = -radius; dy <= radius; dy++) {
+		for (let dz = -radius; dz <= radius; dz++) {
 			for (let dx = -radius; dx <= radius; dx++) {
-				const len = Math.sqrt(dx * dx + dy * dy)
+				const len = Math.sqrt(dx * dx + dz * dz)
 				if (len < radius) {
 					const coeff = (Math.cos(len / radius * Math.PI) + 1) / 2 * (direction < 0 ? -1 : 1)
-					const pid = base + dx * (this.#widthSegments + 1) + dy
-					const z = position.getZ(pid)
-					position.setZ(pid, Math.min(z + 0.01 * coeff, maxHeight))
+					const pid = base + dx * (this.#widthSegments + 1) + dz
+					const y = position.getY(pid)
+					position.setY(pid, Math.min(y + 0.01 * coeff, maxHeight))
 				}
 			}
 		}

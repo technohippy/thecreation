@@ -1,8 +1,9 @@
 import * as THREE from "./three/build/three.module.js"
 
 export class GrassMaterial extends THREE.ShaderMaterial {
-	constructor(texture:string, threshold:number) {
+	constructor(color:number, texture:string, threshold:number) {
 		const uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms)
+		uniforms.uGrassColor = { value:new THREE.Color(color) }
 		uniforms.uNoiseTexture = { value:new THREE.TextureLoader().load(texture) }
 		uniforms.uNoiseThreshold = { value:threshold }
 
@@ -55,6 +56,7 @@ uniform float opacity;
 
 uniform sampler2D uNoiseTexture;
 uniform float uNoiseThreshold;
+uniform vec3 uGrassColor;
 
 void main() {
 
@@ -66,7 +68,7 @@ void main() {
 	#include <clipping_planes_fragment>
 
 	vec4 diffuseColor = vec4( diffuse, opacity );
-	diffuseColor = vec4(0.0, 0.8, 0.5, 1.0);
+	diffuseColor = vec4(uGrassColor, opacity);
 
 	ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
 	vec3 totalEmissiveRadiance = emissive;

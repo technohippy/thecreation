@@ -5,14 +5,12 @@ export class Grass extends THREE.Mesh {
 	constructor(geom:THREE.Geometry) {
 		super()
 
+		const th = 0.4
 		for (let i = 0; i < 20; i++) {
-			const mesh = new THREE.Mesh(
-				//new THREE.PlaneGeometry(3, 3),
-				geom,
-				new GrassMaterial("noise.png", 0.8 + i / 100),
-			)
-			//mesh.rotation.x = Math.PI/3
-			mesh.position.z = i / 10
+			//grass color: 0xc3e48c
+			const mat = new GrassMaterial(0xb3e47c, "noise.png", th + (0.8-th)*i/20),
+			const mesh = new THREE.Mesh(geom, mat)
+			mesh.position.y = i / 100
 			this.add(mesh)
 		}
 	}

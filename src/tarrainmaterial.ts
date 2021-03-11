@@ -126,38 +126,36 @@ void main() {
 	vec4 diffuseColor = vec4( diffuse, opacity );
 
 	// gradation https://qiita.com/tashinoso/items/637ff7a52ab381e042fb
-	float z = vRawPosition.z;
-	if (z < -3.0) {
+	float y = vRawPosition.y;
+	if (y < -3.0) {
 		vec3 fromColor = vec3(0.0, 0.0, 1.0);
 		vec3 toColor = vec3(0.0, 0.0, 0.0);
-		float ratio = abs(z + 3.0) / (10.0 - 3.0);
+		float ratio = abs(y + 3.0) / (10.0 - 3.0);
 		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else if (z < 0.0) {
-		//vec3 fromColor = vec3(230.0/255.0, 244.0/255.0, 242.0/255.0);
+	} else if (y < 0.0) {
 		vec3 fromColor = vec3(199.0/255.0, 226.0/255.0, 140.0/255.0);
 		vec3 toColor = vec3(0.0, 0.0, 1.0);
-		float ratio = abs(z) / 3.0;
+		float ratio = abs(y) / 3.0;
 		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else if (z < 0.5) {
-		//vec3 fromColor = vec3(230.0/255.0, 244.0/255.0, 242.0/255.0);
+	} else if (y < 0.5) {
 		vec3 fromColor = vec3(199.0/255.0, 226.0/255.0, 140.0/255.0);
 		vec3 toColor = vec3(199.0/255.0, 226.0/255.0, 140.0/255.0);
-		float ratio = abs(z) / 0.5;
+		float ratio = abs(y) / 0.5;
 		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else if (z < 6.0) {
+	} else if (y < 6.0) {
 		vec3 fromColor = vec3(199.0/255.0, 226.0/255.0, 140.0/255.0);
 		vec3 toColor = vec3(254.0/255.0, 231.0/255.0, 134.0/255.0);
-		float ratio = abs(z-0.5) / (6.0-0.5);
+		float ratio = abs(y-0.5) / (6.0-0.5);
 		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else if (z < 8.0) {
+	} else if (y < 8.0) {
 		vec3 fromColor = vec3(254.0/255.0, 231.0/255.0, 134.0/255.0);
 		vec3 toColor = vec3(170.0/255.0, 116.0/255.0, 42.0/255.0);
-		float ratio = abs(z-6.0) / (8.0-6.0);
+		float ratio = abs(y-6.0) / (8.0-6.0);
 		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
 	} else {
 		vec3 fromColor = vec3(170.0/255.0, 116.0/255.0, 42.0/255.0);
 		vec3 toColor = vec3(1.0, 1.0, 1.0);
-		float ratio = abs(z-8.0) / (10.0-8.0);
+		float ratio = abs(y-8.0) / (10.0-8.0);
 		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
 	}
 
@@ -174,7 +172,7 @@ void main() {
 	#include <normal_fragment_maps>
 	#include <emissivemap_fragment>
 
-	//if (vRawNormal.z < 0.5) {
+	//if (vRawNormal.y < 0.5) {
 	//	diffuseColor = vec4(0.7, 0.0, 0.0, opacity);
 	//}
 
