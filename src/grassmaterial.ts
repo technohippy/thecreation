@@ -1,24 +1,90 @@
 import * as THREE from "./three/build/three.module.js"
 
 export class GrassMaterial extends THREE.ShaderMaterial {
-	constructor(color:number, texture:string, threshold:number) {
+	constructor(color:number, texture:string, threshold:number, dy:number) {
 		const uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms)
+		uniforms.uDy = { value:dy }
 		uniforms.uGrassColor = { value:new THREE.Color(color) }
 		uniforms.uNoiseTexture = { value:new THREE.TextureLoader().load(texture) }
 		uniforms.uNoiseThreshold = { value:threshold }
 
 		super({
-			lights:true,
-			fog:true,
 			defines: {
 				USE_UV: true,
 			},
-			vertexShader: THREE.ShaderLib.phong.vertexShader,
-			fragmentShader,
+			lights:true,
+			fog:true,
 			uniforms,
+			vertexShader,
+			fragmentShader,
 		})
 	}
 }
+
+const vertexShader = `
+#define PHONG
+
+varying vec3 vViewPosition;
+
+#ifndef FLAT_SHADED
+
+	varying vec3 vNormal;
+
+#endif
+
+#include <common>
+#include <uv_pars_vertex>
+#include <uv2_pars_vertex>
+#include <displacementmap_pars_vertex>
+#include <envmap_pars_vertex>
+#include <color_pars_vertex>
+#include <fog_pars_vertex>
+#include <morphtarget_pars_vertex>
+#include <skinning_pars_vertex>
+#include <shadowmap_pars_vertex>
+#include <logdepthbuf_pars_vertex>
+#include <clipping_planes_pars_vertex>
+
+varying vec3 vRawPosition;
+varying vec3 vRawNormal;
+
+void main() {
+
+	#include <uv_vertex>
+	#include <uv2_vertex>
+	#include <color_vertex>
+
+	#include <beginnormal_vertex>
+	#include <morphnormal_vertex>
+	#include <skinbase_vertex>
+	#include <skinnormal_vertex>
+	#include <defaultnormal_vertex>
+
+#ifndef FLAT_SHADED // Normal computed with derivatives when FLAT_SHADED
+
+	vNormal = normalize( transformedNormal );
+
+#endif
+
+	#include <begin_vertex>
+	#include <morphtarget_vertex>
+	#include <skinning_vertex>
+	#include <displacementmap_vertex>
+	#include <project_vertex>
+	#include <logdepthbuf_vertex>
+	#include <clipping_planes_vertex>
+
+	vViewPosition = - mvPosition.xyz;
+
+	#include <worldpos_vertex>
+	#include <envmap_vertex>
+	#include <shadowmap_vertex>
+	#include <fog_vertex>
+
+	vRawPosition = position;
+	vRawNormal = objectNormal;
+}
+`
 
 const fragmentShader = `
 #define PHONG
@@ -54,14 +120,26 @@ uniform float opacity;
 #include <logdepthbuf_pars_fragment>
 #include <clipping_planes_pars_fragment>
 
+varying vec3 vRawPosition;
+varying vec3 vRawNormal;
+
 uniform sampler2D uNoiseTexture;
 uniform float uNoiseThreshold;
 uniform vec3 uGrassColor;
+uniform float uDy;
 
 void main() {
 
 	vec4 noiseTex = texture2D(uNoiseTexture, vUv);
 	if (noiseTex.r < uNoiseThreshold) {
+		discard;
+	}
+
+	if (vRawPosition.y - uDy < -0.01 || 8.0 < vRawPosition.y - uDy) {
+		discard;
+	}
+
+	if (vRawNormal.y < 0.5) {
 		discard;
 	}
 
