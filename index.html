@@ -15,8 +15,11 @@
 
 			const app = new TheCreation({containerId:"gl"})
 			app.createVRButton(document.body)
-			//app.start()
-			app.startForDebug()
+			if (location.hash === "#debug") {
+				app.startForDebug()
+			} else {
+				app.start()
+			}
 		</script>
 	</body>
 </html>

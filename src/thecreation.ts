@@ -4,6 +4,7 @@ import { Dolly } from "./dolly.js"
 import { Terrain } from "./terrain.js"
 import { TerrainControl } from "./terraincontrol.js"
 import { FirstPersonControls } from './three/examples/jsm/controls/FirstPersonControls.js'
+import { Sky } from './three/examples/jsm/objects/Sky.js';
 
 export type TheCreationConfig = {
 	containerId:string,
@@ -44,9 +45,11 @@ export class TheCreation {
 		this.#renderer.setClearColor(clearColor)
 		this.#renderer.xr.enabled = true
 
+		this.#initSky()
+
 		this.#transformControl = new TerrainControl(this.#dolly, this.#renderer.xr, 0)
 		this.#transformPointer = new THREE.Mesh(
-			new THREE.SphereGeometry(1),
+			new THREE.SphereGeometry(1, 32, 32),
 			new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity: 0.5})
 		)
 		this.#setTransformRange((transformMinRange + transformMaxRange) / 2)
@@ -76,6 +79,28 @@ export class TheCreation {
 		this.#scene.add(this.#focus)
 		this.#scene.add(this.#transformPointer)
 		this.#scene.add(this.#movePointer)
+	}
+
+	#initSky = () => {
+		const inclination = 0.333
+		const azimuth = 0.25
+		const sun = new THREE.Vector3()
+		const theta = Math.PI * (inclination - 0.5)
+		const phi = 2 * Math.PI * (azimuth - 0.5)
+		sun.x = Math.cos(phi)
+		sun.y = Math.sin(phi) * Math.sin(theta)
+		sun.z = Math.sin(phi) * Math.cos(theta)
+		const sky = new Sky()
+		sky.scale.setScalar(450000)
+		sky.material.uniforms["rayleigh"].value = 0.85
+		sky.material.uniforms["turbidity"].value = 10
+		sky.material.uniforms["mieCoefficient"].value = 0.005
+		sky.material.uniforms["mieDirectionalG"].value = 0.7
+		sky.material.uniforms["sunPosition"].value = sun
+		this.#scene.add(sky)
+		this.#renderer.outputEncoding = THREE.sRGBEncoding
+		this.#renderer.toneMapping = THREE.ACESFilmicToneMapping
+		this.#renderer.toneMappingExposure = 0.5
 	}
 
 	#setupTransformControl = () => {

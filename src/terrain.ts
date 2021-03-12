@@ -2,6 +2,7 @@ import * as THREE from "./three/build/three.module.js"
 import { TerrainMaterial } from "./tarrainmaterial.js"
 import { Grass } from "./grass.js"
 import { FlatGeometry } from "./flatgeometry.js"
+import { Reflector } from './three/examples/jsm/objects/Reflector.js';
 
 export class Terrain extends THREE.InstancedMesh {
 	#width:number
@@ -31,10 +32,14 @@ export class Terrain extends THREE.InstancedMesh {
 		}
 
 		// water
-		const water = new THREE.Mesh(
-			new FlatGeometry(width * (instanceSize * 2 + 1), height * (instanceSize * 2 + 1)),
-			new THREE.MeshStandardMaterial({color: 0xbbbbff, opacity: 0.8, transparent:true, side: THREE.DoubleSide}),
-		)
+		const flatGeom = new THREE.PlaneGeometry(width * (instanceSize * 2 + 1), height * (instanceSize * 2 + 1))
+		const water = new Reflector(flatGeom, {
+			clipBias: 0.003,
+			textureWidth: window.innerWidth * window.devicePixelRatio,
+			textureHeight: window.innerHeight * window.devicePixelRatio,
+			color: 0x778899
+		} );
+		water.rotateX(-Math.PI / 2)
 		water.position.y = -0.01
 		this.add(water)
 
