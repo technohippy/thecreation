@@ -43,6 +43,14 @@ export class Terrain extends THREE.InstancedMesh {
 		water.position.y = -0.01
 		this.add(water)
 
+		// back water
+		const backWater = new THREE.Mesh(
+			new FlatGeometry(width * (instanceSize * 2 + 1), height * (instanceSize * 2 + 1)),
+			new THREE.MeshStandardMaterial({color: 0xddeeff, opacity: 0.8, transparent:true, side: THREE.BackSide}),
+		)
+		backWater.position.y = -0.1
+		this.add(backWater)
+
 		// grass
 		const grass = new Grass(this.geometry)
 		grass.position.y = 0.1
