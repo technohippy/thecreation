@@ -1,16 +1,30 @@
 import * as THREE from "./three/build/three.module.js"
 
 export class TerrainMaterial extends THREE.ShaderMaterial {
-	constructor() {
+	constructor(gradation:{position:number, color:THREE.Vector3}[]) {
+		const uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms)
+		const colors = []
+		for (let i = 0; i < gradation.length-1; i++) {
+			const from = gradation[i]
+			const to = gradation[i+1]
+			colors.push({
+				fromHeight:from.position,
+				toHeight:to.position,
+				fromColor:from.color.clone().divideScalar(255),
+				toColor:to.color.clone().divideScalar(255),
+			})
+		}
+		uniforms["rangedColors"] = {value:colors}
+
 		super({
-				lights:true,
-				fog:true,
-				uniforms:THREE.UniformsUtils.merge([
-					THREE.ShaderLib.phong.uniforms,
-					{},
-				]),
-				vertexShader,
-				fragmentShader,
+			defines: {
+				COLOR_SIZE: gradation.length-1,
+			},
+			lights:true,
+			fog:true,
+			uniforms,
+			vertexShader,
+			fragmentShader,
 		})
 	}
 }
@@ -119,44 +133,31 @@ uniform float opacity;
 varying vec3 vRawPosition;
 //varying vec3 vRawNormal;
 
+struct HeightRangeGradation {
+	float fromHeight;
+	float toHeight;
+	vec3 fromColor;
+	vec3 toColor;
+};
+
+uniform HeightRangeGradation rangedColors[COLOR_SIZE];
+
 void main() {
 
 	#include <clipping_planes_fragment>
 
 	vec4 diffuseColor = vec4( diffuse, opacity );
+	diffuseColor = vec4(1.0, 0.0, 1.0, 1.0);
 
 	// gradation https://qiita.com/tashinoso/items/637ff7a52ab381e042fb
 	float y = vRawPosition.y;
-	if (y < -3.0) {
-		vec3 fromColor = vec3(0.0, 0.0, 1.0);
-		vec3 toColor = vec3(0.0, 0.0, 0.0);
-		float ratio = abs(y + 3.0) / (10.0 - 3.0);
-		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else if (y < 0.0) {
-		vec3 fromColor = vec3(199.0/255.0, 226.0/255.0, 140.0/255.0);
-		vec3 toColor = vec3(0.0, 0.0, 1.0);
-		float ratio = abs(y) / 3.0;
-		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else if (y < 0.5) {
-		vec3 fromColor = vec3(199.0/255.0, 226.0/255.0, 140.0/255.0);
-		vec3 toColor = vec3(199.0/255.0, 226.0/255.0, 140.0/255.0);
-		float ratio = abs(y) / 0.5;
-		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else if (y < 6.0) {
-		vec3 fromColor = vec3(199.0/255.0, 226.0/255.0, 140.0/255.0);
-		vec3 toColor = vec3(254.0/255.0, 231.0/255.0, 134.0/255.0);
-		float ratio = abs(y-0.5) / (6.0-0.5);
-		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else if (y < 8.0) {
-		vec3 fromColor = vec3(254.0/255.0, 231.0/255.0, 134.0/255.0);
-		vec3 toColor = vec3(170.0/255.0, 116.0/255.0, 42.0/255.0);
-		float ratio = abs(y-6.0) / (8.0-6.0);
-		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
-	} else {
-		vec3 fromColor = vec3(170.0/255.0, 116.0/255.0, 42.0/255.0);
-		vec3 toColor = vec3(1.0, 1.0, 1.0);
-		float ratio = abs(y-8.0) / (10.0-8.0);
-		diffuseColor = vec4(linearstep(fromColor, toColor, ratio), opacity);
+	for (int i = 0; i < COLOR_SIZE; i++) {
+		HeightRangeGradation color = rangedColors[i];
+		if (color.fromHeight <= y && y < color.toHeight) {
+			float ratio = (y - color.fromHeight) / (color.toHeight - color.fromHeight);
+			diffuseColor = vec4(linearstep(color.fromColor, color.toColor, ratio), opacity);
+			break;
+		}
 	}
 
 	ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );

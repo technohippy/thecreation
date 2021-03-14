@@ -39,7 +39,17 @@ export class TheCreation {
 			new THREE.MeshBasicMaterial({color:0x00ff00}),
 		)
 
-		this.#terrain = new Terrain(50, 50)
+		this.#terrain = new Terrain([
+			{position:-100, color:new THREE.Vector3(0, 0, 0)},
+			{position:-10, color:new THREE.Vector3(0, 0, 0)},
+			{position:-3, color:new THREE.Vector3(0, 0, 255)},
+			{position:0, color:new THREE.Vector3(199, 226, 140)},
+			{position:0.5, color:new THREE.Vector3(199, 226, 140)},
+			{position:6, color:new THREE.Vector3(254, 231, 134)},
+			{position:8, color:new THREE.Vector3(170, 116, 42)},
+			{position:10, color:new THREE.Vector3(255, 255, 255)},
+			{position:100, color:new THREE.Vector3(255, 255, 255)},
+		], 50, 50)
 		this.#renderer = new THREE.WebGLRenderer({canvas:document.getElementById(config.containerId)});
 		this.#renderer.setSize(window.innerWidth, window.innerHeight);
 		this.#renderer.setClearColor(clearColor)

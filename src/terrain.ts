@@ -10,10 +10,10 @@ export class Terrain extends THREE.InstancedMesh {
 	#widthSegments:number
 	#heightSegments:number
 
-	constructor(width:number, height:number, widthSegments=100, heightSegments=100, instanceSize=0) {
+	constructor(gradation:{position:number, color:THREE.Vector3}[], width:number, height:number, widthSegments=100, heightSegments=100, instanceSize=0) {
 		super(
 			new FlatGeometry(width, height, widthSegments, heightSegments),
-			new TerrainMaterial(),
+			new TerrainMaterial(gradation),
 			Math.pow(instanceSize * 2 + 1, 2),
 		)
 		this.#width = width
