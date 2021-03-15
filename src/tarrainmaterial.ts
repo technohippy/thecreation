@@ -22,6 +22,7 @@ export class TerrainMaterial extends THREE.ShaderMaterial {
 			},
 			lights:true,
 			fog:true,
+			//wireframe:true,
 			uniforms,
 			vertexShader,
 			fragmentShader,

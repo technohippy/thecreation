@@ -2,6 +2,7 @@ import * as THREE from "./three/build/three.module.js"
 
 export class Dolly extends THREE.Object3D {
 	camera: THREE.Camera
+	#toolbox: THREE.Mesh
 	#raycaster: THREE.Raycaster
 
 	constructor(camera: THREE.Camera) {
@@ -10,7 +11,26 @@ export class Dolly extends THREE.Object3D {
 		this.camera = camera
 		this.add(this.camera)
 
+		this.#toolbox = new THREE.Mesh(
+			new THREE.BoxGeometry(0.5, 1.0, 0.1),
+			new THREE.MeshPhongMaterial({color:0xffff00}),
+		)
+		this.#toolbox.position.set(0, 1, -1)
+		this.#toolbox.rotation.x = -Math.PI / 6
+		this.hideToolbox()
+		this.add(this.#toolbox)
+
 		this.#raycaster = new THREE.Raycaster()
+	}
+
+	showToolbox() {
+		//console.log("show toolbox")
+		//this.#toolbox.lookAt(this.camera.position)
+		this.#toolbox.visible = true
+	}
+
+	hideToolbox() {
+		this.#toolbox.visible = false
 	}
 
 	getDirection(): THREE.Vector3 {
