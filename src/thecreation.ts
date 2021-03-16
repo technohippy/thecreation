@@ -5,7 +5,7 @@ import { Terrain } from "./terrain.js"
 import { TerrainControl } from "./terraincontrol.js"
 import { FirstPersonControls } from './three/examples/jsm/controls/FirstPersonControls.js'
 import { Sky } from './three/examples/jsm/objects/Sky.js';
-import { TransformControlMode, MoveControlMode } from "./controlmode.js"
+import { TransformControlMode, MoveControlMode, ToolboxControlMode } from "./controlmode.js"
 
 export type TheCreationConfig = {
 	containerId:string,
@@ -119,6 +119,9 @@ export class TheCreation {
 		this.#transformControl.pointer.scale.x = scale
 		this.#transformControl.pointer.scale.y = scale
 		this.#transformControl.pointer.scale.z = scale
+
+		const toolboxControlMode = new ToolboxControlMode(this.#dolly.toolbox)
+		this.#transformControl.addMode("toolbox", toolboxControlMode)
 	}
 
 	#setupMoveControl = () => {

@@ -45,6 +45,13 @@ export class TransformControlMode implements TerrainControlMode {
 	}
 
 	handleAlwaysEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+		const focusDirection = this.dolly.focusPoint(this.terrain, 10).sub(this.dolly.position)
+		if (Math.PI * 3/4 < focusDirection.angleTo(direction)) {
+			this.dolly.showToolbox()
+			control.mode = "toolbox"
+			return
+		}
+
 		// 地形操作ポインタ表示
 		this.#raycaster.set(origin, direction)
 		const intersects = this.#raycaster.intersectObject(this.terrain)
@@ -208,5 +215,33 @@ export class MoveControlMode implements TerrainControlMode {
 		if (this.dolly.position.y < height) {
 			this.dolly.position.y = height
 		}
+	}
+}
+
+export class ToolboxControlMode {
+	#raycaster: THREE.Raycaster
+	#toolbox: THREE.mesh
+
+	constructor(toolbox:THREE.Mesh) {
+		this.#toolbox = toolbox
+		this.#raycaster = new THREE.Raycaster()
+	}
+
+	handleAlwaysEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+	}
+
+	handleSelectedAndSqueezedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+	}
+
+	handleSelectedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+		this.#raycaster.set(origin, direction)
+		const intersects = this.#raycaster.intersectObject(this.#toolbox)
+		if (0 < intersects.length) {
+			this.#toolbox.visible = false
+			control.mode = "transform"
+		}
+	}
+
+	handleSqueezedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
 	}
 }

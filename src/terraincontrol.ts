@@ -3,12 +3,6 @@ import { XRControllerModelFactory } from './three/examples/jsm/webxr/XRControlle
 import { XRHandModelFactory } from './three/examples/jsm/webxr/XRHandModelFactory.js';
 import { NullControlMode, TerrainControlMode } from "./controlmode.js";
 
-const toDegree = (rad:number):number => {
-	while (Math.PI < rad) rad -= Math.PI
-	while (rad < 0) rad += Math.PI
-	return rad/Math.PI * 180
-}
-
 type TerrainEvent = "always" | "selected&squeezed" | "selected" | "squeezed"
 
 export class TerrainControl {
@@ -86,11 +80,6 @@ export class TerrainControl {
 	}
 
 	handleEvent(target:THREE.Mesh) {
-		if (toDegree(this.rotation.x) < 30
-				&& 80 < toDegree(this.rotation.y)
-				&& 80 < toDegree(this.rotation.z)) {
-			this.dolly.showToolbox()
-		}
 		const direction = new THREE.Vector3(0, 0, -1)
 		const controllerMat = new THREE.Matrix4().makeRotationFromEuler(this.#controller.rotation)
 		const containerMat = new THREE.Matrix4().makeRotationFromEuler(this.dolly.rotation)
