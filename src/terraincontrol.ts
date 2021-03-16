@@ -1,6 +1,7 @@
 import * as THREE from "./three/build/three.module.js"
 import { XRControllerModelFactory } from './three/examples/jsm/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from './three/examples/jsm/webxr/XRHandModelFactory.js';
+import { TerrainControlMode } from "./controlmode.js";
 
 const toDegree = (rad:number):number => {
 	while (Math.PI < rad) rad -= Math.PI
@@ -16,7 +17,10 @@ export class TerrainControl {
 	#grip: THREE.Group
 	#hand: THREE.Group
 	#line: THREE.Line
+	pointer: THREE.Mesh
 	dolly: THREE.Group
+
+	mode: TerrainControlMode
 
 	#listeners = new Map<TerrainEvent, ((control:TerrainControl, intersects:any[], position:THREE.Vector3, direction:THREE.Vector3)=>void)[]>()
 
@@ -29,15 +33,21 @@ export class TerrainControl {
 		//this.#grip = val
 		//this.#hand = val
 		this.#line.visible = val
+		this.pointer.visible = val
+	}
+
+	get position(): THREE.Vector3 {
+		return this.#controller.position.clone()
 	}
 
 	get rotation(): THREE.Euler {
 		return this.#controller.rotation.clone()
 	}
 
-	constructor(dolly:THREE.Object3D, xr: THREE.WebXRManager, index:number) {
+	constructor(dolly:THREE.Object3D, pointer:THREE.Mesh, xr: THREE.WebXRManager, index:number) {
 		this.#raycaster = new THREE.Raycaster()
 		this.dolly = dolly
+		this.pointer = pointer
 
 		this.#controller = xr.getController(index)
 		this.#controller.addEventListener('selectstart', () => { this.#controller.userData.selected = true } );
@@ -86,23 +96,16 @@ export class TerrainControl {
 		const position = this.#controller.position.clone().applyEuler(this.dolly.rotation).add(this.dolly.position)
 		direction.applyMatrix4(rotation)
 		this.#raycaster.set(position, direction)
+
 		const intersects = this.#raycaster.intersectObject(target)
 
-		this.#listeners.get("always").forEach(listener => {
-			listener(this, intersects, position.clone(), direction.clone())
-		})
+		this.mode.handleAlwaysEvent(this, position, direction)
 		if (this.#controller.userData.selected && this.#controller.userData.squeezed) {
-			this.#listeners.get("selected&squeezed").forEach(listener => {
-				listener(this, intersects, position, direction)
-			})
+			this.mode.handleSelectedAndSqueezedEvent(this, position, direction)
 		} else if (this.#controller.userData.selected) {
-			this.#listeners.get("selected").forEach(listener => {
-				listener(this, intersects, position, direction)
-			})
+			this.mode.handleSelectedEvent(this, position, direction)
 		} else if (this.#controller.userData.squeezed) {
-			this.#listeners.get("squeezed").forEach(listener => {
-				listener(this, intersects, position, direction)
-			})
+			this.mode.handleSqueezedEvent(this, position, direction)
 		}
 	}
 }

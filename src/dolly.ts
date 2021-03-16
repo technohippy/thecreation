@@ -1,7 +1,10 @@
 import * as THREE from "./three/build/three.module.js"
+import { TerrainControl } from "./terraincontrol.js"
 
 export class Dolly extends THREE.Object3D {
 	camera: THREE.Camera
+	#rightControl: TerrainControl
+	#leftControl: TerrainControl
 	#toolbox: THREE.Mesh
 	#raycaster: THREE.Raycaster
 

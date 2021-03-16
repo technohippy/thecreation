@@ -5,14 +5,11 @@ import { Terrain } from "./terrain.js"
 import { TerrainControl } from "./terraincontrol.js"
 import { FirstPersonControls } from './three/examples/jsm/controls/FirstPersonControls.js'
 import { Sky } from './three/examples/jsm/objects/Sky.js';
+import { TransformControlMode, MoveControlMode } from "./controlmode.js"
 
 export type TheCreationConfig = {
 	containerId:string,
 }
-
-const transformMinRange = 1
-const transformMaxRange = 20
-const transformMaxHeight = 10
 
 export class TheCreation {
 	#scene: THREE.Scene
@@ -21,10 +18,7 @@ export class TheCreation {
 	#renderer: THREE.WebGLRenderer
 	#terrain: Terrain
 	#transformControl: TerrainControl
-	#transformPointer: THREE.Mesh
-	#transformRange: number
 	#moveControl: TerrainControl
-	#movePointer: THREE.Mesh
 
 	constructor(config:TheCreationConfig) {
 		const clearColor = new THREE.Color(0.3, 0.5, 1)
@@ -57,18 +51,17 @@ export class TheCreation {
 
 		this.#initSky()
 
-		this.#transformControl = new TerrainControl(this.#dolly, this.#renderer.xr, 0)
-		this.#transformPointer = new THREE.Mesh(
+		const transformPointer = new THREE.Mesh(
 			new THREE.SphereGeometry(1, 32, 32),
 			new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity: 0.5})
 		)
-		this.#setTransformRange((transformMinRange + transformMaxRange) / 2)
+		this.#transformControl = new TerrainControl(this.#dolly, transformPointer, this.#renderer.xr, 0)
 
-		this.#moveControl = new TerrainControl(this.#dolly, this.#renderer.xr, 1)
-		this.#movePointer = new THREE.Mesh(
+		const movePointer = new THREE.Mesh(
 			new THREE.SphereGeometry(0.1),
 			new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity: 0.5})
 		)
+		this.#moveControl = new TerrainControl(this.#dolly, movePointer, this.#renderer.xr, 1)
 
 		this.#initScene()
 		this.#setupTransformControl()
@@ -87,8 +80,8 @@ export class TheCreation {
 		this.#scene.add(this.#terrain)
 		this.#scene.add(this.#dolly)
 		this.#scene.add(this.#focus)
-		this.#scene.add(this.#transformPointer)
-		this.#scene.add(this.#movePointer)
+		this.#scene.add(this.#transformControl.pointer)
+		this.#scene.add(this.#moveControl.pointer)
 	}
 
 	#initSky = () => {
@@ -114,138 +107,21 @@ export class TheCreation {
 	}
 
 	#setupTransformControl = () => {
-		// 地形操作
-		this.#transformControl.addEventListener("always", (control, intersects, position, direction) => {
-			// 地形操作ポインタ表示
-			if (0 < intersects.length) {
-				this.#transformPointer.position.copy(intersects[0].point)
-				this.#validateDollyPosition()
-			} else {
-				this.#transformPointer.position.copy(position)
-				this.#transformPointer.position.add(direction.clone().multiplyScalar(20))
-			}
-		})
+		const transformControlMode = new TransformControlMode(this.#terrain, this.#dolly)
+		transformControlMode.transformRangeMin = 1
+		transformControlMode.transformRangeMax = 20
+		transformControlMode.transformRange = 10
+		transformControlMode.transformMaxHeight = 10
+		this.#transformControl.mode = transformControlMode
 
-		this.#transformControl.addEventListener("selected&squeezed", (control, intersects, position, direction) => {
-			// 地形操作ポインタ表示／非表示
-			this.#transformControl.visible = !this.#transformControl.visible
-			this.#transformPointer.visible = !this.#transformPointer.visible
-		})
-
-		this.#transformControl.addEventListener("selected", (control, intersects, position, direction) => {
-			if (!this.#transformPointer.visible) return
-
-			if (0 < intersects.length) {
-				// 盛り上げる
-				const intersect = intersects[0]
-				this.#terrain.transform(intersect, this.#transformRange, transformMaxHeight, 1)
-				this.#validateDollyPosition()
-			} else {
-				// 操作範囲を大きく
-				this.#setTransformRange(Math.min(this.#transformRange + 0.02, transformMaxRange))
-			}
-		})
-
-		this.#transformControl.addEventListener("squeezed", (control, intersects, position, direction) => {
-			if (!this.#transformPointer.visible) return
-
-			if (0 < intersects.length) {
-				// 凹ませる
-				const intersect = intersects[0]
-				this.#terrain.transform(intersect, this.#transformRange, transformMaxHeight, -1)
-			} else {
-				// 操作範囲を小さく
-				this.#setTransformRange(Math.max(this.#transformRange - 0.02, transformMinRange))
-			}
-		})
+		const scale = transformControlMode.transformRange / 2
+		this.#transformControl.pointer.scale.x = scale
+		this.#transformControl.pointer.scale.y = scale
+		this.#transformControl.pointer.scale.z = scale
 	}
 
 	#setupMoveControl = () => {
-		// 移動
-		this.#moveControl.addEventListener("always", (control, intersects, position, direction) => {
-			// 移動ポインタ表示
-			if (0 < intersects.length) {
-				const intersect = intersects[0]
-				this.#movePointer.position.copy(intersect.point)
-			} else {
-				this.#movePointer.position.copy(position)
-				this.#movePointer.position.add(direction.clone().multiplyScalar(10))
-			}
-		})
-
-		this.#moveControl.addEventListener("selected&squeezed", (control, intersects, position, controlDirection) => {
-			// 回転
-			if (0 < intersects.length) {
-				const intersect = intersects[0]
-				const pointerDirection = new THREE.Vector2(intersect.point.x, intersect.point.z)
-				pointerDirection.sub(new THREE.Vector2(control.dolly.position.x, control.dolly.position.z))
-				pointerDirection.normalize()
-				const speed = 0.01
-
-				const dollyDirection3 = this.#dolly.getDirection()
-				const dollyDirection = new THREE.Vector2(dollyDirection3.x, dollyDirection3.z)
-				let angle = Math.acos(pointerDirection.dot(dollyDirection))
-				if (0 < pointerDirection.cross(dollyDirection)) {
-					control.dolly.rotation.y += speed * angle
-				} else {
-					control.dolly.rotation.y -= speed * angle
-				}
-			}
-		})
-
-		this.#moveControl.addEventListener("selected", (control, intersects, position, direction) => {
-			if (0 < intersects.length) {
-				// 前進
-				const intersect = intersects[0]
-				const direction = new THREE.Vector2(intersect.point.x, intersect.point.z)
-				direction.sub(new THREE.Vector2(control.dolly.position.x, control.dolly.position.z))
-				direction.normalize()
-				const speed = 0.05
-
-				control.dolly.position.x += direction.x * speed
-				control.dolly.position.z += direction.y * speed
-			} else {
-				// 上昇
-				const speed = 0.05
-				control.dolly.position.y += speed
-			}
-
-			this.#validateDollyPosition()
-		})
-
-		this.#moveControl.addEventListener("squeezed", (control, intersects, position, direction) => {
-			// 後退
-			if (0 < intersects.length) {
-				const intersect = intersects[0]
-				const direction = new THREE.Vector2(intersect.point.x, intersect.point.z)
-				direction.sub(new THREE.Vector2(control.dolly.position.x, control.dolly.position.z))
-				direction.normalize()
-				const speed = 0.05
-
-				control.dolly.position.x -= direction.x * speed
-				control.dolly.position.z -= direction.y * speed
-			} else {
-				// 下降
-				const speed = 0.05
-				control.dolly.position.y -= speed
-			}
-
-			this.#validateDollyPosition()
-		})
-	}
-
-	#setTransformRange = (val:number) => {
-		this.#transformRange = val
-		this.#transformPointer.scale.x = this.#transformRange / 2
-		this.#transformPointer.scale.y = this.#transformRange / 2
-		this.#transformPointer.scale.z = this.#transformRange / 2
-	}
-
-	#validateDollyPosition = () => {
-		const height = this.#terrain.heightAt(this.#dolly.position)
-		if (this.#dolly.position.y < height) {
-			this.#dolly.position.y = height
-		}
+		this.#moveControl.mode = new MoveControlMode(this.#terrain, this.#dolly)
 	}
 
 	createVRButton(container:HTMLElement) {
@@ -277,7 +153,7 @@ export class TheCreation {
 		const keydownListener = (evt) => {
 			if (evt.code === "Space") {
 				const position = this.#dolly.camera.getWorldPosition(new THREE.Vector3())
-				const direction = this.#transformPointer.position.clone()
+				const direction = this.#transformControl.pointer.position.clone()
 				direction.sub(position)
 				direction.normalize()
 				raycaster.set(position, direction)
@@ -285,22 +161,23 @@ export class TheCreation {
 
 				if (0 < intersects.length) {
 					const intersect = intersects[0]
-					console.log(intersect)
 					if (evt.shiftKey) {
 						// 凹ませる
-						this.#terrain.transform(intersect, this.#transformRange, transformMaxHeight, -1)
+						this.#terrain.transform(intersect, this.#transformControl.transformRange, this.#transformControl.transformMaxHeight, -1)
 					} else {
 						// 盛り上げる
-						this.#terrain.transform(intersect, this.#transformRange, transformMaxHeight, 1)
+						this.#terrain.transform(intersect, this.#transformControl.transformRange, transformMaxHeight, 1)
 					}
 				} else {
+					/*
 					if (evt.shiftKey) {
 						// 操作範囲を小さく
-						this.#setTransformRange(Math.max(this.#transformRange - 0.02, transformMinRange))
+						this.#setTransformRange(Math.max(this.#transformControl.transformRange - 0.02, transformMinRange))
 					} else {
 						// 操作範囲を大きく
-						this.#setTransformRange(Math.min(this.#transformRange + 0.02, transformMaxRange))
+						this.#setTransformRange(Math.min(this.#transformControl.transformRange + 0.02, transformMaxRange))
 					}
+					*/
 				}
 			} else if (evt.code === "KeyZ") {
 				// 終わり
