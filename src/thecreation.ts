@@ -120,7 +120,7 @@ export class TheCreation {
 		this.#transformControl.pointer.scale.y = scale
 		this.#transformControl.pointer.scale.z = scale
 
-		const toolboxControlMode = new ToolboxControlMode(this.#dolly.toolbox)
+		const toolboxControlMode = new ToolboxControlMode(this.#terrain, this.#dolly, this.#dolly.toolbox)
 		this.#transformControl.addMode("toolbox", toolboxControlMode)
 	}
 
