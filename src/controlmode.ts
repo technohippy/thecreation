@@ -10,6 +10,20 @@ export interface TerrainControlMode {
 	handleSqueezedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3)
 }
 
+export class NullControlMode {
+	handleAlwaysEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+	}
+
+	handleSelectedAndSqueezedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+	}
+
+	handleSelectedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+	}
+
+	handleSqueezedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+	}
+}
+
 export class TransformControlMode implements TerrainControlMode {
 	#raycaster: THREE.Raycaster
 	terrain:Terrain
@@ -18,6 +32,7 @@ export class TransformControlMode implements TerrainControlMode {
 	transformRangeMin:number
 	transformRangeMax:number
 	transformMaxHeight:number
+	processing = false
 
 	constructor(terrain:Terrain, dolly:Dolly) {
 		this.#raycaster = new THREE.Raycaster()
@@ -43,8 +58,12 @@ export class TransformControlMode implements TerrainControlMode {
 	}
 
 	handleSelectedAndSqueezedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+		if (this.processing) return
+
 		// 地形操作ポインタ表示／非表示
 		control.visible = !control.visible
+		this.processing = true
+		setTimeout(() => this.processing = false, 300)
 	}
 
 	handleSelectedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {

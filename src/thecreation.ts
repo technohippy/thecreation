@@ -112,7 +112,8 @@ export class TheCreation {
 		transformControlMode.transformRangeMax = 20
 		transformControlMode.transformRange = 10
 		transformControlMode.transformMaxHeight = 10
-		this.#transformControl.mode = transformControlMode
+		this.#transformControl.addMode("transform", transformControlMode)
+		this.#transformControl.mode = "transform"
 
 		const scale = transformControlMode.transformRange / 2
 		this.#transformControl.pointer.scale.x = scale
@@ -121,7 +122,9 @@ export class TheCreation {
 	}
 
 	#setupMoveControl = () => {
-		this.#moveControl.mode = new MoveControlMode(this.#terrain, this.#dolly)
+		const moveControlMode = new MoveControlMode(this.#terrain, this.#dolly)
+		this.#moveControl.addMode("mode", moveControlMode)
+		this.#moveControl.mode = "mode"
 	}
 
 	createVRButton(container:HTMLElement) {

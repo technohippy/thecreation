@@ -45,7 +45,6 @@
 - 全体に島にして周囲はWater.jsで海にする
 	- examples/ocean
 - 風の音とか水の音とか
-- 地形変化ポインタON/OFFの切り替えのフラッタを止める
 
 # Texture
 
@@ -62,6 +61,7 @@
 
 # DONE
 
+- 地形変化ポインタON/OFFの切り替えのフラッタを止める
 - 水面は表裏で別のポリゴンを用意して色を変える
 - TerrainMaterialのグラデーションをuniformで外から与えられるように
 - startDebugとstartをUAで切り替え

@@ -1,7 +1,7 @@
 import * as THREE from "./three/build/three.module.js"
 import { XRControllerModelFactory } from './three/examples/jsm/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from './three/examples/jsm/webxr/XRHandModelFactory.js';
-import { TerrainControlMode } from "./controlmode.js";
+import { NullControlMode, TerrainControlMode } from "./controlmode.js";
 
 const toDegree = (rad:number):number => {
 	while (Math.PI < rad) rad -= Math.PI
@@ -20,9 +20,8 @@ export class TerrainControl {
 	pointer: THREE.Mesh
 	dolly: THREE.Group
 
-	mode: TerrainControlMode
-
-	#listeners = new Map<TerrainEvent, ((control:TerrainControl, intersects:any[], position:THREE.Vector3, direction:THREE.Vector3)=>void)[]>()
+	mode = "default"
+	#modes: Map<string, TerrainControlMode>
 
 	get visible(): boolean {
 		return this.#line.visible
@@ -42,6 +41,10 @@ export class TerrainControl {
 
 	get rotation(): THREE.Euler {
 		return this.#controller.rotation.clone()
+	}
+
+	get currentMode(): TerrainControlMode {
+		return this.#modes.get(this.mode)
 	}
 
 	constructor(dolly:THREE.Object3D, pointer:THREE.Mesh, xr: THREE.WebXRManager, index:number) {
@@ -73,14 +76,13 @@ export class TerrainControl {
 		this.dolly.add(this.#controller)
 		this.dolly.add(this.#grip)
 		this.dolly.add(this.#hand)
+
+		this.#modes = new Map<string, TerrainControlMode>()
+		this.#modes.set("default", new NullControlMode())
 	}
 
-	addEventListener(event:TerrainEvent, listener:(control:TerrainControl, intersects:any[], position:THREE.Vector3, direction:THREE.Vector3) => void) {
-		if (!this.#listeners.has(event)) {
-			this.#listeners.set(event, [])
-		}
-		const listeners = this.#listeners.get(event)
-		listeners.push(listener)
+	addMode(mode:string, handler:TerrainControlMode) {
+		this.#modes.set(mode, handler)
 	}
 
 	handleEvent(target:THREE.Mesh) {
@@ -99,13 +101,13 @@ export class TerrainControl {
 
 		const intersects = this.#raycaster.intersectObject(target)
 
-		this.mode.handleAlwaysEvent(this, position, direction)
+		this.currentMode.handleAlwaysEvent(this, position, direction)
 		if (this.#controller.userData.selected && this.#controller.userData.squeezed) {
-			this.mode.handleSelectedAndSqueezedEvent(this, position, direction)
+			this.currentMode.handleSelectedAndSqueezedEvent(this, position, direction)
 		} else if (this.#controller.userData.selected) {
-			this.mode.handleSelectedEvent(this, position, direction)
+			this.currentMode.handleSelectedEvent(this, position, direction)
 		} else if (this.#controller.userData.squeezed) {
-			this.mode.handleSqueezedEvent(this, position, direction)
+			this.currentMode.handleSqueezedEvent(this, position, direction)
 		}
 	}
 }
