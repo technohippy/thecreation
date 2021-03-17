@@ -1,0 +1,1 @@
+{"version":3,"file":"movablecamera.js","sourceRoot":"","sources":["../src/movablecamera.ts"],"names":[],"mappings":";;;;;;;;;;;;;;AAAA,OAAO,KAAK,KAAK,MAAM,+BAA+B,CAAA;AAEtD,MAAM,OAAO,KAAM,SAAQ,KAAK,CAAC,QAAQ;IAGxC,YAAY,MAAoB;QAC/B,KAAK,EAAE,CAAA;QAHR,0BAAqB;QAKpB,uBAAA,IAAI,WAAW,MAAM,EAAA;QACrB,IAAI,CAAC,GAAG,uCAAc,CAAA;IACvB,CAAC;IAED,SAAS;QACR,6CAAmB;IACpB,CAAC;CACD"}
