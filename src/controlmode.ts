@@ -3,6 +3,7 @@ import { Terrain } from "./terrain.js";
 import { TerrainControl } from "./terraincontrol.js";
 import { Dolly } from "./dolly.js";
 import { Toolbox } from "./toolbox.js"
+import { Button } from "./button.js"
 
 export interface TerrainControlMode {
 	handleAlwaysEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3)
@@ -46,6 +47,7 @@ export class TransformControlMode implements TerrainControlMode {
 	}
 
 	handleAlwaysEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+		// ツールボックス表示
 		const focusDirection = this.dolly.focusPoint(this.terrain, 10).sub(this.dolly.position)
 		if (Math.PI * 3/4 < focusDirection.angleTo(direction)) {
 			this.dolly.showToolbox()
@@ -223,42 +225,44 @@ export class ToolboxControlMode {
 	#raycaster: THREE.Raycaster
 	#terrain: Terrain
 	#dolly: Dolly
-	#toolbox: Toolbox
+	#selectedButton?: Button
 
-	constructor(terrain:Terrain, dolly:Dolly, toolbox:THREE.Mesh) {
+	constructor(terrain:Terrain, dolly:Dolly) {
 		this.#terrain = terrain
 		this.#dolly = dolly
-		this.#toolbox = toolbox
 		this.#raycaster = new THREE.Raycaster()
 	}
 
 	handleAlwaysEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
+		// 移動ポインタ表示
+		this.#raycaster.set(origin, direction)
+		const intersects = this.#raycaster.intersectObjects(this.#dolly.toolbox.buttons)
+		if (0 < intersects.length) {
+			const intersect = intersects[0]
+			if (this.#selectedButton) {
+				this.#selectedButton.scale.x = 1
+				this.#selectedButton.scale.y = 1
+				this.#selectedButton.scale.z = 1
+			}
+			this.#selectedButton = intersect.object
+			this.#selectedButton.scale.x = 1.2
+			this.#selectedButton.scale.y = 1.2
+			this.#selectedButton.scale.z = 1.2
+		} else {
+			if (this.#selectedButton) {
+				this.#selectedButton.scale.x = 1
+				this.#selectedButton.scale.y = 1
+				this.#selectedButton.scale.z = 1
+			}
+			this.#selectedButton = undefined
+		}
 	}
 
 	handleSelectedAndSqueezedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
 	}
 
 	handleSelectedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {
-		this.#raycaster.set(origin, direction)
-		console.log(this.#toolbox)
-		const intersects = this.#raycaster.intersectObjects(this.#toolbox.buttons)
-		if (0 < intersects.length) {
-			const button = intersects[0].object
-			console.log(button)
-			if (button.userData.type === "walking") {
-				this.#terrain.scale.x = 5 
-				this.#terrain.scale.y = 2 
-				this.#terrain.scale.z = 5
-				this.#terrain.needsUpdate = true
-				this.#dolly.position.y = this.#terrain.heightAt(this.#dolly.position)
-
-				this.#toolbox.visible = false
-				control.mode = "transform"
-			} else if (button.userData.type === "back") {
-				this.#toolbox.visible = false
-				control.mode = "transform"
-			}
-		}
+		this.#selectedButton?.fireEvent("select")
 	}
 
 	handleSqueezedEvent(control:TerrainControl, origin:THREE.Vector3, direction:THREE.Vector3) {

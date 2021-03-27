@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "start": "npm run watch & browser-sync start --server --port=9090 --ui-port=9091 --files='./*.html, ./dist/**/*.js'",
-    "start:oculus": "ruby -rwebrick -rwebrick/https -e 'WEBrick::HTTPServer.new(:DocumentRoot => \"./\", :Port => 9090, :SSLEnable => true, :SSLCertName => [[\"CN\", WEBrick::Utils::getservername]] ).start'",
+    "start:oculus": "ruby -rwebrick -rwebrick/https -e 'WEBrick::HTTPServer.new(:DocumentRoot => \"./\", :Port => 9092, :SSLEnable => true, :SSLCertName => [[\"CN\", WEBrick::Utils::getservername]] ).start'",
     "watch": "tsc -w",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

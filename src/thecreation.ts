@@ -56,6 +56,7 @@ export class TheCreation {
 			new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity: 0.5})
 		)
 		this.#transformControl = new TerrainControl(this.#dolly, transformPointer, this.#renderer.xr, 0)
+		this.#dolly.toolbox.control = this.#transformControl // TODO
 
 		const movePointer = new THREE.Mesh(
 			new THREE.SphereGeometry(0.1),

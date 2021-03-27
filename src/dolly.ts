@@ -25,8 +25,6 @@ export class Dolly extends THREE.Object3D {
 	}
 
 	showToolbox() {
-		//console.log("show toolbox")
-		//this.#toolbox.lookAt(this.camera.position)
 		this.toolbox.visible = true
 	}
 

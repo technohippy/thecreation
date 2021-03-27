@@ -37,7 +37,7 @@ export class TerrainControl {
 		return this.#controller.rotation.clone()
 	}
 
-	get currentMode(): TerrainControlMode {
+	get currentModeHandler(): TerrainControlMode {
 		return this.#modes.get(this.mode)
 	}
 
@@ -86,17 +86,14 @@ export class TerrainControl {
 		const rotation = containerMat.multiply(controllerMat)
 		const position = this.#controller.position.clone().applyEuler(this.dolly.rotation).add(this.dolly.position)
 		direction.applyMatrix4(rotation)
-		this.#raycaster.set(position, direction)
 
-		const intersects = this.#raycaster.intersectObject(target)
-
-		this.currentMode.handleAlwaysEvent(this, position, direction)
+		this.currentModeHandler.handleAlwaysEvent(this, position, direction)
 		if (this.#controller.userData.selected && this.#controller.userData.squeezed) {
-			this.currentMode.handleSelectedAndSqueezedEvent(this, position, direction)
+			this.currentModeHandler.handleSelectedAndSqueezedEvent(this, position, direction)
 		} else if (this.#controller.userData.selected) {
-			this.currentMode.handleSelectedEvent(this, position, direction)
+			this.currentModeHandler.handleSelectedEvent(this, position, direction)
 		} else if (this.#controller.userData.squeezed) {
-			this.currentMode.handleSqueezedEvent(this, position, direction)
+			this.currentModeHandler.handleSqueezedEvent(this, position, direction)
 		}
 	}
 }
