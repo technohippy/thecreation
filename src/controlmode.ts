@@ -2,7 +2,6 @@ import * as THREE from "./three/build/three.module.js"
 import { Terrain } from "./terrain.js";
 import { TerrainControl } from "./terraincontrol.js";
 import { Dolly } from "./dolly.js";
-import { Toolbox } from "./toolbox.js"
 import { Button } from "./button.js"
 
 export interface TerrainControlMode {
@@ -103,8 +102,8 @@ export class TransformControlMode implements TerrainControlMode {
 			this.terrain.transform(intersect, this.transformRange, this.transformMaxHeight, -1)
 			this.#validateDollyPosition()
 		} else {
-			// 操作範囲を大きく
-			this.#setTransformRange(Math.min(this.transformRange - 0.02, this.transformRangeMax), control.pointer)
+			// 操作範囲を小さく
+			this.#setTransformRange(Math.max(this.transformRange - 0.02, this.transformRangeMin), control.pointer)
 		}
 	}
 

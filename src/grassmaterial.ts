@@ -7,6 +7,7 @@ export class GrassMaterial extends THREE.ShaderMaterial {
 		uniforms.uGrassColor = { value:new THREE.Color(color) }
 		uniforms.uNoiseTexture = { value:new THREE.TextureLoader().load(texture) }
 		uniforms.uNoiseThreshold = { value:threshold }
+		uniforms.uVisibleDistance = { value:20.0 }
 
 		super({
 			defines: {
@@ -45,6 +46,7 @@ varying vec3 vViewPosition;
 #include <logdepthbuf_pars_vertex>
 #include <clipping_planes_pars_vertex>
 
+varying vec3 vPosition;
 varying vec3 vRawPosition;
 varying vec3 vRawNormal;
 
@@ -83,6 +85,7 @@ void main() {
 
 	vRawPosition = position;
 	vRawNormal = objectNormal;
+	vPosition = mvPosition.xyz;
 }
 `
 
@@ -120,6 +123,7 @@ uniform float opacity;
 #include <logdepthbuf_pars_fragment>
 #include <clipping_planes_pars_fragment>
 
+varying vec3 vPosition;
 varying vec3 vRawPosition;
 varying vec3 vRawNormal;
 
@@ -127,8 +131,13 @@ uniform sampler2D uNoiseTexture;
 uniform float uNoiseThreshold;
 uniform vec3 uGrassColor;
 uniform float uDy;
+uniform float uVisibleDistance;
 
 void main() {
+
+	if (uVisibleDistance < distance(vPosition, vViewPosition)) {
+		discard;
+	}
 
 	vec4 noiseTex = texture2D(uNoiseTexture, vUv);
 	if (noiseTex.r < uNoiseThreshold) {

@@ -48,6 +48,9 @@
 - 各モードが有効になったときのイベント
 - 近いところにだけ草を生やす
 - モデルのLOD
+- 全体を正方形ではなく丸くして島っぽくする
+	- 周囲は海面シェーダー
+		- https://threejs.org/examples/?q=water#webgl_shaders_ocean
 
 # Texture
 

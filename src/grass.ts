@@ -10,6 +10,7 @@ export class Grass extends THREE.Mesh {
 			const dy = i / 100
 			//grass color: 0xc3e48c
 			const mat = new GrassMaterial(0xb3e47c, "noise256.png", th + (0.8-th)*i/20, dy)
+			//const mat = new GrassMaterial(0xff0000, "noise256.png", th + (0.8-th)*i/20, dy)
 			const mesh = new THREE.Mesh(geom, mat)
 			mesh.position.y = dy
 			this.add(mesh)

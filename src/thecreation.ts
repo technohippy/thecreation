@@ -3,7 +3,6 @@ import { VRButton } from "./three/examples/jsm/webxr/VRButton.js"
 import { Dolly } from "./dolly.js"
 import { Terrain } from "./terrain.js"
 import { TerrainControl } from "./terraincontrol.js"
-import { FirstPersonControls } from './three/examples/jsm/controls/FirstPersonControls.js'
 import { Sky } from './three/examples/jsm/objects/Sky.js';
 import { TransformControlMode, MoveControlMode, ToolboxControlMode } from "./controlmode.js"
 
@@ -17,8 +16,6 @@ export class TheCreation {
 	#focus: THREE.Mesh
 	#renderer: THREE.WebGLRenderer
 	#terrain: Terrain
-	#transformControl: TerrainControl
-	#moveControl: TerrainControl
 
 	constructor(config:TheCreationConfig) {
 		const clearColor = new THREE.Color(0.3, 0.5, 1)
@@ -50,23 +47,9 @@ export class TheCreation {
 		this.#renderer.xr.enabled = true
 
 		this.#initSky()
-
-		const transformPointer = new THREE.Mesh(
-			new THREE.SphereGeometry(1, 32, 32),
-			new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity: 0.5})
-		)
-		this.#transformControl = new TerrainControl(this.#dolly, transformPointer, this.#renderer.xr, 0)
-		this.#dolly.toolbox.control = this.#transformControl // TODO
-
-		const movePointer = new THREE.Mesh(
-			new THREE.SphereGeometry(0.1),
-			new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity: 0.5})
-		)
-		this.#moveControl = new TerrainControl(this.#dolly, movePointer, this.#renderer.xr, 1)
-
+		this.#dolly.rightControl = this.#createTransformControl()
+		this.#dolly.leftControl = this.#createMoveControl()
 		this.#initScene()
-		this.#setupTransformControl()
-		this.#setupMoveControl()
 	}
 
 	#initScene = () => {
@@ -81,8 +64,8 @@ export class TheCreation {
 		this.#scene.add(this.#terrain)
 		this.#scene.add(this.#dolly)
 		this.#scene.add(this.#focus)
-		this.#scene.add(this.#transformControl.pointer)
-		this.#scene.add(this.#moveControl.pointer)
+		this.#scene.add(this.#dolly.rightControl.pointer)
+		this.#scene.add(this.#dolly.leftControl.pointer)
 	}
 
 	#initSky = () => {
@@ -107,28 +90,42 @@ export class TheCreation {
 		this.#renderer.toneMappingExposure = 0.5
 	}
 
-	#setupTransformControl = () => {
+	#createTransformControl = (): TerrainControl => {
+		const transformPointer = new THREE.Mesh(
+			new THREE.SphereGeometry(1, 32, 32),
+			new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity: 0.5})
+		)
+		const transformControl = new TerrainControl(this.#dolly, transformPointer, this.#renderer.xr, 0)
+
 		const transformControlMode = new TransformControlMode(this.#terrain, this.#dolly)
 		transformControlMode.transformRangeMin = 1
 		transformControlMode.transformRangeMax = 20
 		transformControlMode.transformRange = 10
 		transformControlMode.transformMaxHeight = 10
-		this.#transformControl.addMode("transform", transformControlMode)
-		this.#transformControl.mode = "transform"
+		transformControl.addMode("transform", transformControlMode)
+		transformControl.mode = "transform"
 
 		const scale = transformControlMode.transformRange / 2
-		this.#transformControl.pointer.scale.x = scale
-		this.#transformControl.pointer.scale.y = scale
-		this.#transformControl.pointer.scale.z = scale
+		transformControl.pointer.scale.x = scale
+		transformControl.pointer.scale.y = scale
+		transformControl.pointer.scale.z = scale
 
-		const toolboxControlMode = new ToolboxControlMode(this.#terrain, this.#dolly, this.#dolly.toolbox)
-		this.#transformControl.addMode("toolbox", toolboxControlMode)
+		const toolboxControlMode = new ToolboxControlMode(this.#terrain, this.#dolly)
+		transformControl.addMode("toolbox", toolboxControlMode)
+		return transformControl
 	}
 
-	#setupMoveControl = () => {
+	#createMoveControl = (): TerrainControl => {
+		const movePointer = new THREE.Mesh(
+			new THREE.SphereGeometry(0.1),
+			new THREE.MeshBasicMaterial({color:0x0000ff, transparent:true, opacity: 0.5})
+		)
+		const moveControl = new TerrainControl(this.#dolly, movePointer, this.#renderer.xr, 1)
+
 		const moveControlMode = new MoveControlMode(this.#terrain, this.#dolly)
-		this.#moveControl.addMode("mode", moveControlMode)
-		this.#moveControl.mode = "mode"
+		moveControl.addMode("move", moveControlMode)
+		moveControl.mode = "move"
+		return moveControl
 	}
 
 	createVRButton(container:HTMLElement) {
@@ -143,80 +140,8 @@ export class TheCreation {
 	}
 
 	#step = () => {
-		this.#transformControl.handleEvent(this.#terrain)
-		this.#moveControl.handleEvent(this.#terrain)
+		this.#dolly.handleEvent(this.#terrain)
 
 		this.#focus.position.copy(this.#dolly.focusPoint(this.#terrain, 10))
-	}
-
-	startForDebug() {
-		setTimeout(() => {
-			document.getElementById("VRButton").style.display = "none"
-		})
-		let stop = false
-		this.#renderer.xr.enabled = false
-		const raycaster = new THREE.Raycaster()
-
-		const keydownListener = (evt) => {
-			if (evt.code === "Space") {
-				const position = this.#dolly.camera.getWorldPosition(new THREE.Vector3())
-				const direction = this.#transformControl.pointer.position.clone()
-				direction.sub(position)
-				direction.normalize()
-				raycaster.set(position, direction)
-				const intersects = raycaster.intersectObject(this.#terrain)
-
-				if (0 < intersects.length) {
-					const intersect = intersects[0]
-					if (evt.shiftKey) {
-						// 凹ませる
-						this.#terrain.transform(intersect, this.#transformControl.transformRange, this.#transformControl.transformMaxHeight, -1)
-					} else {
-						// 盛り上げる
-						this.#terrain.transform(intersect, this.#transformControl.transformRange, transformMaxHeight, 1)
-					}
-				} else {
-					/*
-					if (evt.shiftKey) {
-						// 操作範囲を小さく
-						this.#setTransformRange(Math.max(this.#transformControl.transformRange - 0.02, transformMinRange))
-					} else {
-						// 操作範囲を大きく
-						this.#setTransformRange(Math.min(this.#transformControl.transformRange + 0.02, transformMaxRange))
-					}
-					*/
-				}
-			} else if (evt.code === "KeyZ") {
-				// 終わり
-				stop = true
-				this.#renderer.domElement.removeEventListener("keydown", keydownListener)
-				control.enabled = false
-
-				this.#dolly.position.set(0, 5, 0)
-				this.#dolly.rotation.set(0, 0, 0)
-				this.#dolly.camera.position.set(0, 0, 0)
-				this.#dolly.camera.rotation.set(0, 0, 0)
-				this.#renderer.xr.enabled = true
-				this.start()
-				document.getElementById("VRButton").style.display = "block"
-			}
-		}
-
-		this.#renderer.domElement.addEventListener("keydown", keydownListener)
-
-		const control = new FirstPersonControls(this.#dolly, this.#renderer.domElement)
-		control.movementSpeed = 0.5;
-		control.lookSpeed = 0.05;
-
-		const clock = new THREE.Clock()
-		const step = () => {
-			this.#step()
-			this.#renderer.render(this.#scene, this.#dolly.camera)
-			window.requestAnimationFrame(() => {
-				control.update(clock.getDelta())
-				if (!stop) step()
-			})
-		}
-		step()
 	}
 }

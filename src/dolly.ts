@@ -1,13 +1,31 @@
 import * as THREE from "./three/build/three.module.js"
 import { TerrainControl } from "./terraincontrol.js"
 import { Toolbox } from "./toolbox.js"
+import { Terrain } from "./terrain.js"
 
 export class Dolly extends THREE.Object3D {
 	camera: THREE.Camera
 	toolbox: Toolbox
-	#rightControl: TerrainControl
-	#leftControl: TerrainControl
+	#rightControl!: TerrainControl
+	#leftControl!: TerrainControl
 	#raycaster: THREE.Raycaster
+
+	get rightControl(): TerrainControl {
+		return this.#rightControl
+	}
+
+	set rightControl(control: TerrainControl) {
+		this.#rightControl = control
+		this.toolbox.control = control
+	}
+
+	get leftControl(): TerrainControl {
+		return this.#leftControl
+	}
+
+	set leftControl(control: TerrainControl) {
+		this.#leftControl = control
+	}
 
 	constructor(camera: THREE.Camera) {
 		super()
@@ -53,5 +71,10 @@ export class Dolly extends THREE.Object3D {
 		} else {
 			return intersects[0].point
 		}
+	}
+
+	handleEvent(terrain:Terrain) {
+		this.#rightControl.handleEvent(terrain)
+		this.#leftControl.handleEvent(terrain)
 	}
 }

@@ -4,6 +4,7 @@ import { XRHandModelFactory } from './three/examples/jsm/webxr/XRHandModelFactor
 import { NullControlMode, TerrainControlMode } from "./controlmode.js";
 
 type TerrainEvent = "always" | "selected&squeezed" | "selected" | "squeezed"
+type ControlMode = "default" | "move" | "transform" | "toolbox"
 
 export class TerrainControl {
 	#raycaster: THREE.Raycaster
@@ -14,8 +15,8 @@ export class TerrainControl {
 	pointer: THREE.Mesh
 	dolly: THREE.Group
 
-	mode = "default"
-	#modes: Map<string, TerrainControlMode>
+	mode: ControlMode = "default"
+	#modes: Map<ControlMode, TerrainControlMode>
 
 	get visible(): boolean {
 		return this.#line.visible
